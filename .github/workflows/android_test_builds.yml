@@ -108,8 +108,8 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
           files: |
-            app-release.apk
-            app-release.aab
+            apk/release/app-release.apk
+            bundle/release/app-release.aab
 
   version:
     name: Create version number
