@@ -74,7 +74,7 @@ jobs:
       - name: Releasing builds
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
-          automatic_release_tag: "${{ steps.version.outputs.content }}"
+          automatic_release_tag: "latest"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
           files: |
