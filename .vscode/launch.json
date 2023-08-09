@@ -1,0 +1,30 @@
+{
+    "configurations": [
+        {
+            "name": "Flutter (Linux)",
+            "program": "lib/main.dart",
+            "deviceId": "linux",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "Flutter (release mode)",
+            "program": "lib/main.dart",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "Flutter Integration Tests",
+            "program": "integration_test",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "Flutter Integration Tests",
+            "program": "integration_test",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}

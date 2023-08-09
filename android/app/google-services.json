@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "275310049237",
+    "project_id": "weep-transfer",
+    "storage_bucket": "weep-transfer.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:275310049237:android:cd0974827b9bf859d06f5c",
+        "android_client_info": {
+          "package_name": "com.alper.weepy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "275310049237-ng63ivm48o62rh4a1gvur4s62h18ia2s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAycw0XFFuyMBbnxyxc53bey_qOZAMuFn0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "275310049237-ng63ivm48o62rh4a1gvur4s62h18ia2s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

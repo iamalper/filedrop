@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=0.1.0
+Name=file sharer
+GenericName=file sharer
+Comment=Cross platform file sharing via local network.
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=Flutter;
+Icon=file_sharer.png

@@ -1,0 +1,24 @@
+{
+    "sendFileButton":"Send file",
+    "getFileButton":"Receive file",
+    "scanningNetwork":"Scanning network",
+    "notConnectedToNetwork":"Not connected to a network",
+    "noReceiverDeviceFound":"Can't find device. Make sure to connect same network",
+    "connectionWaiting":"Waiting for connection\nCode: {code}",
+    "@connectionWaiting": {
+        "placeholders":{
+            "code":{
+                "type":"int"
+            }
+        }
+    },
+    "fileUploading":"Sending files",
+    "fileDownloading":"Downloading files",
+    "filesSaved":"Files saved to Downloads folder",
+    "filesSent":"Files sent",
+    "noStoragePermission":"Can't download file without storage permission",
+    "unknownError":"Unknown error",
+    "cantReadDatabase":"Can't read database",
+    "noFileHistory":"No file history",
+    "clearFileHistory":"Clear history"
+}

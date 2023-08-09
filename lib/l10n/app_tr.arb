@@ -1,0 +1,24 @@
+{
+        "sendFileButton":"Dosya gönder",
+        "getFileButton":"Dosya al",
+        "scanningNetwork":"Ağ taranıyor",
+        "notConnectedToNetwork":"Bir ağa bağlı değilsiniz",
+        "noReceiverDeviceFound":"Alıcı bulunamadı. Aynı ağa bağlı olduğuza emin olun",
+        "connectionWaiting":"Bağlantı bekleniyor\nKod: {code}",
+        "@connectionWaiting": {
+            "placeholders":{
+                "code":{
+                    "type":"int"
+                }
+            }
+        },
+        "fileUploading":"Dosyalar gönderiliyor",
+        "fileDownloading":"Dosyalar alınıyor",
+        "filesSaved":"Dosyalar indirilenler klasörüne kaydedildi",
+        "filesSent":"Dosyalar gönderildi",
+        "noStoragePermission":"Dosya kaydetme izni olmadan dosya kaydedilemez",
+        "unknownError":"Bilinmeyen hata",
+        "cantReadDatabase":"Veritabanı okunamadı",
+        "noFileHistory":"Henüz işlem yapılmadı",
+        "clearFileHistory":"Geçmişi temizle"
+}
