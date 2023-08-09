@@ -68,13 +68,18 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Start release appbundle build
         run: flutter build appbundle
+        
       - name: Start release apk build
         run: flutter build apk
-      - name: Upload Android Release
-        uses: actions/upload-artifact@v2
+      - name: Releasing builds
+        uses: "marvinpinto/action-automatic-releases@1.2.1"
         with:
-          name: android-release
-          path: build/app/outputs/bundle/release/app-release.aab
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: true
+          automatic_release_tag: ${{ steps.version.outputs.content }}+${{ github.run_number }}
+          files: |
+            build/app/outputs/bundle/release/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
   version:
     name: Create version number
     # The type of runner that the job will run on
