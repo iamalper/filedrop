@@ -1,3 +1,3 @@
-# file_sharer
+# Weepy File Transfer
 
-A new Flutter project.
+Simple file transfering app over wifi.
