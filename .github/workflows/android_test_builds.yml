@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build  
       - name: Releasing builds
-      - uses: "marvinpinto/action-automatic-releases@v1.2.1"
+        uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
           automatic_release_tag: "${{ jobs.build.steps.version.outputs.content }}"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
