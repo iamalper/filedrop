@@ -67,10 +67,25 @@ jobs:
       - name: Start release apk build
         run: flutter build apk
 
+      - name: Upload Android Releases
+        uses: actions/upload-artifact@v2
+        with:
+          name: android-releases
+          path: |
+            build/app/outputs/bundle/release/app-release.aab
+            build/app/outputs/bundle/release/app-release.apk
+
   publish:
     runs-on: ubuntu-latest
     needs: [build, version]
     steps:
+      - uses: actions/checkout@v3
+
+      - name: Downloading builds
+        uses: actions/download-artifact@v3
+        with: 
+          name: android-releases
+
       - name: Releasing builds
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
@@ -78,8 +93,8 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
           files: |
-            build/app/outputs/bundle/release/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
+            app-release.apk
+            app-release.aab
 
   version:
     name: Create version number
