@@ -69,7 +69,7 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, version]
     steps:
       - name: Releasing builds
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
