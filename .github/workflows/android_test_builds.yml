@@ -1,11 +1,9 @@
-name: Android Test Build
-
+name: Android Build
 
 on:
-
-
-  workflow_dispatch:
-
+  push:
+    tags:
+      - v*
 
 jobs:
 
