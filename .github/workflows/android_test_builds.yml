@@ -37,7 +37,7 @@ jobs:
         run: sed -i 's/99.99.99+99/${{ steps.version.outputs.content }}/g' debian/debian.yaml
 
       - name: Update version in wifi_transfer.desktop
-        run: sed -i 's/99.99.99+99/${{ steps.version.outputs.content }}/g' debian/wifi_transfer.desktop
+        run: sed -i 's/99.99.99+99/${{ steps.version.outputs.content }}/g' debian/gui/wifi_transfer.desktop
 
       - name: Download Android keystore
         id: android_keystore
