@@ -93,9 +93,9 @@ jobs:
         with:
           name: builds
           path: |
-            app/outputs/flutter-apk/release/app-release.apk
-            app/outputs/bundle/release/app-release.aab
-            linux/x64/release/debian/*.deb
+            build/app/outputs/flutter-apk/release/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+            build/linux/x64/release/debian/*.deb
 
   publish:
     runs-on: ubuntu-latest
