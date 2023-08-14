@@ -6,5 +6,5 @@ Comment=Cross platform file sharing via local network.
 Terminal=false
 Type=Application
 Categories=Utility;
-Keywords=Flutter;
-Icon=file_sharer.png
+Keywords=Flutter;share;file;wifi;transfer;
+Icon=wifi_transfer.png

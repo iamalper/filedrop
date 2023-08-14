@@ -1,0 +1,14 @@
+flutter_app: 
+  command: wifi_transfer
+  arch: x64
+  parent: /usr/local/lib
+  nonInteractive: false
+
+control:
+  Package: wifi-transfer
+  Version: 1.0.0
+  Architecture: amd64
+  Priority: optional
+  Depends:
+  Maintainer: Alper
+  Description: File sharing over wifi.
