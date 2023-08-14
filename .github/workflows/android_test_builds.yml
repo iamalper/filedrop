@@ -93,7 +93,7 @@ jobs:
         with:
           name: builds
           path: |
-            build/app/outputs/flutter-apk/release/app-release.apk
+            build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
             build/linux/x64/release/debian/*.deb
 
@@ -129,9 +129,9 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
           files: |
-            build/app/outputs/flutter-apk/release/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
-            build/linux/x64/release/debian/*.deb
+            app/outputs/flutter-apk/app-release.apk
+            app/outputs/bundle/release/app-release.aab
+            linux/x64/release/debian/*.deb
 
   version:
     name: Create version number
