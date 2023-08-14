@@ -79,6 +79,11 @@ class DbFile {
 
   ///Open the file in OS
   Future<void> open() => OpenFilex.open(path);
+
+  ///dbFile{name: [name], fileType: [fileType].name, time: [time], fileStatus: [fileStatus].name}
+  @override
+  String toString() =>
+      "dbFile{name: $name, fileType: ${fileType?.name}, time: $time, fileStatus: ${fileStatus.name}}";
 }
 
 class Device {
@@ -113,4 +118,9 @@ class Device {
       throw "ip error";
     }
   }
+
+  ///deviceModel{Adress: [adress], Code: [code], Port: [port]}
+  @override
+  String toString() =>
+      "Device Model{Adress: $adress, Code: $code, Port: $port}";
 }
