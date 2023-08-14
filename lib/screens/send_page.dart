@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import '../classes/discover.dart' as discover_class; //çakışmayı önlemek için
+import '../classes/discover.dart' as discover_class; //for prevent collusion
 import '../classes/send.dart';
 import '../constants.dart';
 import '../models.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-
-late AnimationController uploadAnimC;
 
 class SendPage extends StatelessWidget {
   final bool isDark;
@@ -28,30 +26,30 @@ class SendPageInner extends StatefulWidget {
 class _SendPageInnerState extends State<SendPageInner>
     with TickerProviderStateMixin {
   int _uiState = 1;
-  late Future<void> discover;
-  late List<Device> ipList;
-
+  late Future<void> _discover;
+  late List<Device> _ipList;
+  late AnimationController _uploadAnimC;
   set uiState(int uiState) => setState(() => _uiState = uiState);
 
   @override
   void initState() {
-    uploadAnimC = AnimationController(vsync: this)
+    _uploadAnimC = AnimationController(vsync: this)
       ..addListener(() {
         setState(() {});
       });
-    discover = discover_class.Discover.discover().then((ips) {
-      ipList = ips;
+    _discover = discover_class.Discover.discover().then((ips) {
+      _ipList = ips;
       uiState = 6;
     }).catchError((_) {
-      uiState = 5; //Herhangi bir hatada bir ağa bağlı olmadığı varsayılıyor
+      uiState = 5; //Didn't connected any network
     });
     super.initState();
   }
 
   @override
   void dispose() {
-    discover.ignore();
-    uploadAnimC.dispose();
+    _discover.ignore();
+    _uploadAnimC.dispose();
     super.dispose();
   }
 
@@ -64,7 +62,7 @@ class _SendPageInnerState extends State<SendPageInner>
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(AppLocalizations.of(context)!.fileUploading),
             LinearProgressIndicator(
-              value: uploadAnimC.value,
+              value: _uploadAnimC.value,
               minHeight: 10,
             ),
           ]),
@@ -92,22 +90,22 @@ class _SendPageInnerState extends State<SendPageInner>
           AppLocalizations.of(context)!.notConnectedToNetwork,
           textAlign: TextAlign.center,
         );
-      case 6: //ip listesi tarandı
-        if (ipList.isEmpty) {
+      case 6: //network scanned
+        if (_ipList.isEmpty) {
           return Text(
             AppLocalizations.of(context)!.noReceiverDeviceFound,
             textAlign: TextAlign.center,
           );
         } else {
           return ListView.builder(
-              itemCount: ipList.length,
+              itemCount: _ipList.length,
               itemBuilder: (context, index) {
-                final device = ipList[index];
+                final device = _ipList[index];
                 return ListTile(
                   title: Text(device.code.toString()),
                   leading: const Icon(Icons.phone_android),
                   onTap: () {
-                    _send(device);
+                    _send(device, _uploadAnimC);
                   },
                 );
               });
@@ -117,11 +115,11 @@ class _SendPageInnerState extends State<SendPageInner>
     }
   }
 
-  Future<void> _send(Device device) async {
+  Future<void> _send(Device device, AnimationController uploadAnimC) async {
     final file = await Send.filePick();
     if (file != null) {
       uiState = 2;
-      Send.send(device, file).catchError((err) {
+      Send.send(device, file, uploadAnimC: uploadAnimC).catchError((err) {
         switch (err) {
           case "ip error":
             uiState = 5;

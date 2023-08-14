@@ -29,7 +29,8 @@ void main() {
             mode: FileMode.writeOnly);
       }
 
-      code = await Receive.listen(port: testPort, ui: false, useDb: false);
+      code =
+          await Receive.listen(port: testPort, saveToTemp: true, useDb: false);
       devices = await Discover.discover(port: testPort);
     });
 
@@ -44,7 +45,7 @@ void main() {
           size: sendingFile.lengthSync(),
           name: path.basename(sendingFile.path),
           path: sendingFile.path);
-      await Send.send(devices.single, [platfromFile], ui: false, useDb: false);
+      await Send.send(devices.single, [platfromFile], useDb: false);
       expect(await sendingFile.readAsBytes(),
           equals(File(Receive.files.single.path).readAsBytesSync()));
     });
@@ -56,7 +57,7 @@ void main() {
               size: sendingFiles[index].lengthSync(),
               name: path.basename(sendingFiles[index].path),
               path: sendingFiles[index].path));
-      await Send.send(devices.single, pFiles, ui: false, useDb: false);
+      await Send.send(devices.single, pFiles, useDb: false);
       for (var i = 0; i < sendingFiles.length; i++) {
         final gidenDosya = sendingFiles[i];
         final gelenDosya = File(Receive.files[i].path);

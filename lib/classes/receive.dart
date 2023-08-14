@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf;
 import 'package:path/path.dart';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
-import '../screens/receive_page.dart' show downloadAnimC;
 import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -37,9 +37,10 @@ class Receive {
   ///[port] listened for incoming connections. Should not set except testing or
   ///other devices will require manual port setting.
   ///
-  ///If [ui] is `true`, download progress will send to `DownloadAnimC` from `recieve_page.dart`.
-  ///Recieve page should be loaded before this method called.
-  ///Set `false` for testing without loading `Receive` page, or a lateinit exception throws.
+  ///If [downloadAnimC] is set, progress will be sent to it.
+  ///
+  ///If [saveToTemp] is `true`, files will be saved to temp directory. It's useful for
+  ///testing because don't need for storage permissions
   ///
   ///If [useDb] is `true`, file informations will be saved to sqflite database.
   ///Don't needed to open the database manually.
@@ -48,8 +49,11 @@ class Receive {
   ///Returns the code generated for discovery. Other devices should select this code for
   ///connecting to this device
   static Future<int> listen(
-      {int port = Constants.port, bool ui = true, bool useDb = true}) async {
-    if ((Platform.isAndroid || Platform.isIOS) && ui) {
+      {int port = Constants.port,
+      bool useDb = true,
+      bool saveToTemp = false,
+      AnimationController? downloadAnimC}) async {
+    if ((Platform.isAndroid || Platform.isIOS)) {
       //These platforms needs storage permissions (only tested on Android)
       final perm = await Permission.storage.request();
       if (!perm.isGranted) throw "Permission denied";
@@ -87,7 +91,7 @@ class Receive {
                 HeaderValue.parse(mime.headers['content-disposition']!)
                     .parameters["filename"]!;
             late File file;
-            if ((Platform.isLinux || Platform.isWindows) && ui) {
+            if ((Platform.isLinux || Platform.isWindows)) {
               //Saving to downloads because these platforms don't require any permission
               final dir = Directory(join(
                   (await getDownloadsDirectory())!.path, Constants.saveFolder));
@@ -104,20 +108,19 @@ class Receive {
             int downloadedBytesto100 = 0;
             await for (var bytes in mime) {
               file.writeAsBytesSync(bytes, mode: FileMode.writeOnlyAppend);
-              if (ui) {
-                downloadedBytesto100 += bytes.length;
-                if (downloadedBytesto100 >= totalBytesPer100) {
-                  downloadAnimC.value += 0.01;
-                  downloadedBytesto100 - totalBytesPer100;
-                }
+
+              downloadedBytesto100 += bytes.length;
+              if (downloadedBytesto100 >= totalBytesPer100) {
+                downloadAnimC?.value += 0.01;
+                downloadedBytesto100 - totalBytesPer100;
               }
             }
             final mimeType = lookupMimeType(file.path);
             late bool isSaved;
-            if ((Platform.isLinux || Platform.isWindows) && ui) {
+            if ((Platform.isLinux || Platform.isWindows)) {
               //Skipping Media Store confirmation for desktop platforms
               isSaved = true;
-            } else if (ui) {
+            } else if (saveToTemp) {
               //Using Media Store for mobile platforms
               isSaved = await _ms.saveFile(
                   tempFilePath: file.path,
@@ -126,7 +129,7 @@ class Receive {
             } else {
               //ui is false for testing.
               //We don't use Media Store api because we use temp folder for testing
-              //for not brothering with permissions.
+              //and not brothering with permissions.
               isSaved = true;
             }
             if (isSaved) {
@@ -164,10 +167,9 @@ class Receive {
         } catch (e) {
           rethrow;
         } finally {
-          //File downloaded successfully or failed. Resetting progess bar for both cases.
-          if (ui) {
-            downloadAnimC.value = 1;
-          }
+          //File downloaded successfully or failed. Resetting progess for both cases.
+          downloadAnimC?.value = 1;
+
           //Open for new connections
           isBusy = false;
         }

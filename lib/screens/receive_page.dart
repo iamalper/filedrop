@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../classes/receive.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-late AnimationController downloadAnimC;
-
 class ReceivePage extends StatelessWidget {
   final bool isDark;
   const ReceivePage({super.key, required this.isDark});
@@ -22,36 +20,38 @@ class ReceivePageInner extends StatefulWidget {
   const ReceivePageInner({super.key});
 
   @override
-  State<ReceivePageInner> createState() => ReceivePageInnerState();
+  State<ReceivePageInner> createState() => _ReceivePageInnerState();
 }
 
-class ReceivePageInnerState extends State<ReceivePageInner>
+class _ReceivePageInnerState extends State<ReceivePageInner>
     with TickerProviderStateMixin {
-  late int code;
-  late Future<void> receiveFuture;
+  late AnimationController _downloadAnimC;
+
+  late int _code;
+  late Future<void> _receiveFuture;
   int _uiStatus = 0;
   set uiStatus(int uiStatus) => setState(() => _uiStatus = uiStatus);
   @override
   initState() {
-    downloadAnimC = AnimationController(vsync: this)
+    _downloadAnimC = AnimationController(vsync: this)
       ..addListener(() {
         setState(() {});
       })
       ..addStatusListener((status) {
         if (_uiStatus != 2) {
-          uiStatus = 2; //dosya almaya başlıyor
+          uiStatus = 2; //Downloading
         }
         if (status == AnimationStatus.completed) {
           if (Receive.files.isNotEmpty) {
-            uiStatus = 3; //dosya alındı
+            uiStatus = 3; //Completed
           } else {
-            uiStatus = 6;
+            uiStatus = 6; //Error
           }
         }
       });
 
-    receiveFuture = Receive.listen().then((code) {
-      this.code = code;
+    _receiveFuture = Receive.listen(downloadAnimC: _downloadAnimC).then((code) {
+      _code = code;
       uiStatus = 1;
     }).catchError((err) {
       switch (err) {
@@ -65,8 +65,7 @@ class ReceivePageInnerState extends State<ReceivePageInner>
           uiStatus = 7;
           break;
         default:
-          debugPrint("Receive hata $err");
-          uiStatus = 6;
+          throw err;
       }
     });
 
@@ -75,8 +74,8 @@ class ReceivePageInnerState extends State<ReceivePageInner>
 
   @override
   void dispose() {
-    downloadAnimC.dispose();
-    receiveFuture.ignore();
+    _downloadAnimC.dispose();
+    _receiveFuture.ignore();
     Receive.stopListening();
     super.dispose();
   }
@@ -89,7 +88,7 @@ class ReceivePageInnerState extends State<ReceivePageInner>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              AppLocalizations.of(context)!.connectionWaiting(code),
+              AppLocalizations.of(context)!.connectionWaiting(_code),
               textAlign: TextAlign.center,
             ),
             Assets.hotspot,
@@ -104,7 +103,7 @@ class ReceivePageInnerState extends State<ReceivePageInner>
               textAlign: TextAlign.center,
             ),
             LinearProgressIndicator(
-              value: downloadAnimC.value,
+              value: _downloadAnimC.value,
               minHeight: 10,
             )
           ]),

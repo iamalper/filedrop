@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/animation.dart';
 import '../main.dart';
 import '../models.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
-import '../screens/send_page.dart';
 import 'database.dart';
 
 class _MyHttpOverrides extends HttpOverrides {} //For using http apis from tests
@@ -28,16 +28,14 @@ class Send {
   ///
   ///[files] will send to [device]
   ///
-  ///If [ui] is `true`, download progress will send to `UploadAnimC` from `send_page.dart`.
-  ///Recieve page should be loaded before this method called.
-  ///Set `false` for testing without loading `Receive` page, or a lateinit exception throws.
+  ///If [uploadAnimC] is set, progess will be sent to it.
   ///
   ///If [useDb] is `true`, file informations will be saved to sqflite database.
-  ///Must set to `false` for desktop enviroments because Sqflite isn't supported on desktops.
+  ///Must set to `false` for prevent database usage.
   ///
   ///Throws `http error` if other device is busy.
   static Future<void> send(Device device, List<PlatformFile> files,
-      {bool ui = true, bool useDb = true}) async {
+      {AnimationController? uploadAnimC, bool useDb = true}) async {
     HttpOverrides.global = _MyHttpOverrides();
     final requestMultiPart = http.MultipartRequest("POST", device.uri);
     for (var file in files) {
@@ -52,12 +50,11 @@ class Send {
     int uploadedBytesTo100 = 0;
     await for (var bytes in byteStream) {
       requestStreamed.sink.add(bytes);
-      if (ui) {
-        uploadedBytesTo100 += bytes.length;
-        if (uploadedBytesTo100 >= totalBytesPer100) {
-          uploadAnimC.value += 0.01;
-          uploadedBytesTo100 - totalBytesPer100;
-        }
+
+      uploadedBytesTo100 += bytes.length;
+      if (uploadedBytesTo100 >= totalBytesPer100) {
+        uploadAnimC?.value += 0.01;
+        uploadedBytesTo100 - totalBytesPer100;
       }
     }
     requestStreamed.sink.close();
@@ -85,9 +82,7 @@ class Send {
         }
         allFiles.add(dbFile);
       }
-      if (ui) {
-        uploadAnimC.value = 1;
-      }
+      uploadAnimC?.value = 1;
       if (useDb) {
         await db.close();
       }
