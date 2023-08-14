@@ -5,14 +5,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'main.dart';
 
 class Constants {
-  //Gelen dosyaların kaydedildiği klasörün adı
-  static const String saveFolder = "File Sharer";
+  ///Folder name for incoming files
+  static const String saveFolder = "Weepy";
 
-  //Http portu
+  ///Http port for discovery, sending and recieving files
   static const port = 3242;
 
-  //Http isteklerine tanıtma gövdesi
-  static const tanitim = "FILE_SHARER";
+  ///Response message for discovery
+  static const meeting = "WEEPY";
 }
 
 class Appbars {

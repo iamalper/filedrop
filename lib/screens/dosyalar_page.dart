@@ -4,6 +4,14 @@ import '../classes/database.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dosyalar extends StatefulWidget {
+  ///Widget for listing recent files.
+  ///
+  ///if [loaded] is `false`, draws a loading animation instead of files.
+  ///It should be used for determinate if database read completed or not.
+  ///
+  ///If [dbError] is `true`, <b>cantReadDatabase</b> string from translations will be shown instead of files.
+  ///
+  ///[allFiles] is the files which are about to shown in widget.
   const Dosyalar({
     super.key,
     required this.loaded,

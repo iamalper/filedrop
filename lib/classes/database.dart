@@ -5,6 +5,12 @@ import '../models.dart';
 
 class DatabaseManager {
   late Database _db;
+
+  ///Open the database and creates tables if didn't created before.
+  ///
+  ///Is is safe to reopen database after [stop] called.
+  ///
+  ///It didn't enough tested for desktop platforms.
   Future<void> open() async {
     if (Platform.isLinux || Platform.isWindows) {
       sqfliteFfiInit();
@@ -22,6 +28,9 @@ class DatabaseManager {
     );
   }
 
+  ///Insert a uploaded or downloaded file information
+  ///
+  ///Make sure [open] is called and [close] isn't called.
   Future<void> insert(DbFile file) async {
     switch (file.fileStatus) {
       case DbFileStatus.upload:
@@ -43,50 +52,34 @@ class DatabaseManager {
     }
   }
 
-  Future<void> clear() async {
-    await _db.delete("uploaded");
-    await _db.delete("downloaded");
-  }
+  ///Delete all uploaded/downloaded file entries from database.
+  ///
+  ///Files will not be deleted. Only their infos will be deleted.
+  ///
+  ///Make sure [open] is called and [close] isn't called.
+  Future<void> clear() =>
+      Future.wait([_db.delete("uploaded"), _db.delete("downloaded")]);
 
-  Future<void> close() async {
-    await _db.close();
-  }
+  ///Close the database.
+  ///
+  ///If database is not opened, lateinit exception throws.
+  Future<void> close() => _db.close();
 
+  ///Get all donwloaded/uploaded file information as list.
+  ///
+  ///Make sure [open] is called and [close] isn't called.
   Future<List<DbFile>> get files async {
-    final uploadedQueryResult =
+    final uploadedMaps =
         await _db.query("uploaded", columns: ["name", "type", "time", "path"]);
-    final uploaded = List.generate(uploadedQueryResult.length, (index) {
-      final rawdata = uploadedQueryResult[index];
-      final type = rawdata["type"] as String?;
-      return DbFile(
-          name: rawdata["name"] as String,
-          fileType: type == null
-              ? null
-              : DbFileType.values
-                  .singleWhere((element) => element.name == type),
-          time: DateTime.fromMillisecondsSinceEpoch(rawdata["time"] as int),
-          path: rawdata["path"] as String,
-          fileStatus: DbFileStatus.upload);
-    });
-
-    final downloadedQueryResult = await _db
+    final uploadedFiles =
+        uploadedMaps.map((e) => DbFile.uploadedFromMap(e)).toList();
+    final downloadedMaps = await _db
         .query("downloaded", columns: ["name", "type", "time", "path"]);
-    final downloaded = List.generate(downloadedQueryResult.length, (index) {
-      final rawdata = downloadedQueryResult[index];
-      final type = rawdata["type"] as String?;
-      return DbFile(
-          name: rawdata["name"] as String,
-          fileType: type == null
-              ? null
-              : DbFileType.values
-                  .singleWhere((element) => element.name == type),
-          time: DateTime.fromMillisecondsSinceEpoch(rawdata["time"] as int),
-          path: rawdata["path"] as String,
-          fileStatus: DbFileStatus.download);
-    });
+    final downloadedFiles =
+        downloadedMaps.map((e) => DbFile.downloadedFromMap(e)).toList();
     List<DbFile> files = [];
-    files.addAll(uploaded);
-    files.addAll(downloaded);
+    files.addAll(uploadedFiles);
+    files.addAll(downloadedFiles);
     return files;
   }
 }

@@ -1,18 +1,22 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:file_sharer/main.dart';
-import 'package:file_sharer/models.dart';
+import '../main.dart';
+import '../models.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
 import '../screens/send_page.dart';
 import 'database.dart';
 
-late String filedir;
+class _MyHttpOverrides extends HttpOverrides {} //For using http apis from tests
 
-class _MyHttpOverrides extends HttpOverrides {}
-
+///Class for all Sending jobs.
+///
+///Available methods are [filePick] and [send]
 class Send {
+  ///Pick files which are about to send.
+  ///
+  ///You should pass them to [send] method.
   static Future<List<PlatformFile>?> filePick() async {
     final result = await FilePicker.platform
         .pickFiles(withReadStream: true, allowMultiple: true);
@@ -20,6 +24,18 @@ class Send {
     return result?.files;
   }
 
+  ///Sends file(s) to a device
+  ///
+  ///[files] will send to [device]
+  ///
+  ///If [ui] is `true`, download progress will send to `UploadAnimC` from `send_page.dart`.
+  ///Recieve page should be loaded before this method called.
+  ///Set `false` for testing without loading `Receive` page, or a lateinit exception throws.
+  ///
+  ///If [useDb] is `true`, file informations will be saved to sqflite database.
+  ///Must set to `false` for desktop enviroments because Sqflite isn't supported on desktops.
+  ///
+  ///Throws `http error` if other device is busy.
   static Future<void> send(Device device, List<PlatformFile> files,
       {bool ui = true, bool useDb = true}) async {
     HttpOverrides.global = _MyHttpOverrides();

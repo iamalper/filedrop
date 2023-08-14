@@ -1,4 +1,4 @@
-import 'package:file_sharer/constants.dart';
+import '../constants.dart';
 import 'package:flutter/material.dart';
 import '../classes/receive.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -42,7 +42,7 @@ class ReceivePageInnerState extends State<ReceivePageInner>
           uiStatus = 2; //dosya almaya başlıyor
         }
         if (status == AnimationStatus.completed) {
-          if (files.isNotEmpty) {
+          if (Receive.files.isNotEmpty) {
             uiStatus = 3; //dosya alındı
           } else {
             uiStatus = 6;
@@ -121,9 +121,9 @@ class ReceivePageInnerState extends State<ReceivePageInner>
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: files.length,
+                itemCount: Receive.files.length,
                 itemBuilder: (context, index) {
-                  final file = files[index];
+                  final file = Receive.files[index];
                   return ListTile(
                     title: Text(file.name),
                     onTap: file.fileType != null ? () => file.open() : null,

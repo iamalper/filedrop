@@ -12,40 +12,65 @@ import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'database.dart';
-import 'package:file_sharer/models.dart';
+import '../models.dart';
 import '../constants.dart';
 import 'discover.dart';
 import '../main.dart';
 
-HttpServer? _server;
-List<DbFile> files = [];
-final _ms = MediaStore();
-late String _tempDir;
-late int _code;
-
+///Class for all Recieve jobs
+///
+///Available methods are [listen] and [stopListening]
 class Receive {
+  ///Saved files in current session
+  ///
+  ///All element must manually removed from list after displaying in the ui
+  static List<DbFile> files = [];
+  static final _ms = MediaStore();
+  static late Directory _tempDir;
+  static late int _code;
+  static HttpServer? _server;
+
+  ///Starts listening for discovery and recieving file(s).
+  ///Handles one connection at once. If another device tires to match,
+  ///sends `400 Bad request` as response
+  ///
+  ///[port] listened for incoming connections. Should not set except testing or
+  ///other devices will require manual port setting.
+  ///
+  ///If [ui] is `true`, download progress will send to `DownloadAnimC` from `recieve_page.dart`.
+  ///Recieve page should be loaded before this method called.
+  ///Set `false` for testing without loading `Receive` page, or a lateinit exception throws.
+  ///
+  ///If [useDb] is `true`, file informations will be saved to sqflite database.
+  ///Don't needed to open the database manually.
+  ///Must set to `false` for prevent database usage.
+  ///
+  ///Returns the code generated for discovery. Other devices should select this code for
+  ///connecting to this device
   static Future<int> listen(
       {int port = Constants.port, bool ui = true, bool useDb = true}) async {
     if ((Platform.isAndroid || Platform.isIOS) && ui) {
+      //These platforms needs storage permissions (only tested on Android)
       final perm = await Permission.storage.request();
       if (!perm.isGranted) throw "Permission denied";
     }
+
     final ip = await Discover.getMyIp();
     _code = Random().nextInt(8888) + 1111;
     MediaStore.appFolder = Constants.saveFolder;
-    _tempDir = (await getTemporaryDirectory()).path;
+    _tempDir = await getTemporaryDirectory();
     bool isBusy = false;
     _server = await shelf.serve((Request request) async {
       if (isBusy) {
-        //Halihazırda işlem yapılıyorsa yeni bağlantıları reddet
+        //Deny new connections if busy
         return Response.forbidden(null);
       }
       if (request.method == "GET") {
-        //kendini tanıtma
+        //Response to discovery requests
         return Response.ok(
-            jsonEncode({"mesaj": Constants.tanitim, "code": _code}));
+            jsonEncode({"message": Constants.meeting, "code": _code}));
       } else if (request.method == "POST") {
-        //dosya al
+        //Reciving file
         try {
           isBusy = true;
           final stream = MimeMultipartTransformer(
@@ -63,28 +88,17 @@ class Receive {
                     .parameters["filename"]!;
             late File file;
             if ((Platform.isLinux || Platform.isWindows) && ui) {
-              //Direk indirilenlere kayıt
+              //Saving to downloads because these platforms don't require any permission
               final dir = Directory(join(
                   (await getDownloadsDirectory())!.path, Constants.saveFolder));
               dir.createSync();
 
               file = File(join(dir.path, filename));
-              for (var i = 1; file.existsSync(); i++) {
-                final name = basenameWithoutExtension(file.path);
-                final exten = extension(file.path);
-                file = File(join(dir.path, "$name ($i)$exten"));
-              }
+              file = _generateFileName(file, dir);
             } else {
-              //Mobilde MediaStore sdk için ve test için temp klasörüne kayıt
-              file = File(join(_tempDir, filename));
-              for (var i = 1; file.existsSync(); i++) {
-                final name = basenameWithoutExtension(file.path);
-                final exten = extension(file.path);
-                file = File(join(_tempDir, "$name ($i)$exten"));
-              }
-              if (file.existsSync()) {
-                file.deleteSync();
-              }
+              //Saving to the temp folder for mediastore or testing
+              file = File(join(_tempDir.path, filename));
+              file = _generateFileName(file, _tempDir);
             }
             final totalBytesPer100 = request.contentLength! / 100;
             int downloadedBytesto100 = 0;
@@ -101,19 +115,22 @@ class Receive {
             final mimeType = lookupMimeType(file.path);
             late bool isSaved;
             if ((Platform.isLinux || Platform.isWindows) && ui) {
-              //masaüstünde direk kaydedildi
+              //Skipping Media Store confirmation for desktop platforms
               isSaved = true;
             } else if (ui) {
-              //mobil için mediastore apisi kullanılıyor
+              //Using Media Store for mobile platforms
               isSaved = await _ms.saveFile(
                   tempFilePath: file.path,
                   dirType: DirType.download,
                   dirName: DirName.download);
             } else {
-              //test için
+              //ui is false for testing.
+              //We don't use Media Store api because we use temp folder for testing
+              //for not brothering with permissions.
               isSaved = true;
             }
             if (isSaved) {
+              //Setting file type
               String? type;
               if (mimeType != null) {
                 if (mimeType.startsWith("image/")) {
@@ -147,17 +164,35 @@ class Receive {
         } catch (e) {
           rethrow;
         } finally {
+          //File downloaded successfully or failed. Resetting progess bar for both cases.
           if (ui) {
             downloadAnimC.value = 1;
           }
+          //Open for new connections
           isBusy = false;
         }
       }
+      //Request method neither POST or GET
       return Response.badRequest();
     }, ip, port, poweredByHeader: null);
 
     return _code;
   }
 
-  static Future<void> stopListening() async => await _server?.close();
+  ///Ensures a file with same name not exists.
+  ///
+  ///It may rename files as file.exe to file (2).exe
+  static File _generateFileName(File file, Directory dir) {
+    for (var i = 1; file.existsSync(); i++) {
+      final name = basenameWithoutExtension(file.path);
+      final exten = extension(file.path);
+      file = File(join(dir.path, "$name ($i)$exten"));
+    }
+    return file;
+  }
+
+  ///Closes the listening server.
+  ///
+  ///Is is safe to call before [listen] or after [listen] .
+  static Future<void>? stopListening() => _server?.close();
 }
