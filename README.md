@@ -11,11 +11,11 @@ I am unsure about name, it may different in codes or change in future.
 Because most of the other file transfering apps on Play Store has bloated with ads or poor reviews, so i decied to develop an useful app and gain experience.
 ## Download and Install
 ### Ubuntu, Debian
-You can get .deb packages from <a href="releases">Releases</a>
+You can get .deb packages from <a href="../releases">Releases</a>
 ### Android
 <a href='https://play.google.com/store/apps/details?id=com.alper.weepy&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img style="height: 40%; width: 40%" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'/></a>
 
-Or you can get **.apk** or **.aab** packages from <a href="releases">Releases</a>
+Or you can get **.apk** or **.aab** packages from <a href="../releases">Releases</a>
 ### Windows, Mac OS, IOS
 I don't ship packages or test for these platfroms, homever you can build yourself.
 ### Web
