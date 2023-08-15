@@ -28,7 +28,7 @@ class Discover {
             await client.get(Uri.http("${activeHost.address}:$port"));
         if (response.statusCode == 200) {
           final json = jsonDecode(response.body);
-          if (json["mesaj"] == Constants.meeting) {
+          if (json["message"] == Constants.meeting) {
             ips.add(Device(
                 adress: activeHost.address,
                 code: json["code"] as int,
