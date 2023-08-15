@@ -5,7 +5,7 @@ A Simple file transfering app. It made with Flutter. It works on local networks.
 I am unsure about name, it may different in codes or change in future.
 ## Screenshots
 
-<img style="height: 30%; width: 20%" alt='Screenshot 0' src='screenshots_en/Google Pixel 4 XL Screenshot 0.png'/><img style="height: 20%; width: 20%" alt='Screenshot 1' src='screenshots_en/Google Pixel 4 XL Screenshot 1.png'/><img style="height: 20%; width: 20%" alt='Screenshot 2' src='screenshots_en/Google Pixel 4 XL Screenshot 2.png'/>
+<img style="height: 30%; width: 30%" alt='Screenshot 0' src='screenshots_en/Google Pixel 4 XL Screenshot 0.png'/> <img style="height: 30%; width: 30%" alt='Screenshot 1' src='screenshots_en/Google Pixel 4 XL Screenshot 1.png'/> <img style="height: 30%; width: 30%" alt='Screenshot 2' src='screenshots_en/Google Pixel 4 XL Screenshot 2.png'/>
 
 ## Why?
 Because most of the other file transfering apps on Play Store has bloated with ads or poor reviews, so i decied to develop an useful app and gain experience.
