@@ -5,7 +5,7 @@ A Simple file transfering app. It made with Flutter. It works on local networks.
 I am unsure about name, it may different in codes or change in future.
 ## Screenshots
 
-<img style="height: 20%; width: 20%" alt='Screenshot 0' src='screenshots_en/Google Pixel 4 XL Screenshot 0.png'/><img style="height: 20%; width: 20%" alt='Screenshot 1' src='screenshots_en/Google Pixel 4 XL Screenshot 1.png'/><img style="height: 20%; width: 20%" alt='Screenshot 2' src='screenshots_en/Google Pixel 4 XL Screenshot 2.png'/>
+<img style="height: 30%; width: 20%" alt='Screenshot 0' src='screenshots_en/Google Pixel 4 XL Screenshot 0.png'/><img style="height: 20%; width: 20%" alt='Screenshot 1' src='screenshots_en/Google Pixel 4 XL Screenshot 1.png'/><img style="height: 20%; width: 20%" alt='Screenshot 2' src='screenshots_en/Google Pixel 4 XL Screenshot 2.png'/>
 
 ## Why?
 Because most of the other file transfering apps on Play Store has bloated with ads or poor reviews, so i decied to develop an useful app and gain experience.
@@ -22,7 +22,8 @@ I don't ship packages or test for these platfroms, homever you can build yoursel
 I can't find a way for accessing local networks from browsers. If you build for web, it has no functionalty.
 
 ## Build
-It is a flutter project so you can build with `flutter build` from repo directory.
+It is a flutter project soif you if have **flutter** installed, you can build with `flutter build` from repo directory.
+If not, see <a href=https://docs.flutter.dev/get-started/install>Flutter docs: Install</a>
 
 For Android release build, you need to create your keystore and **key.properties** in **android** folder. See more at <a href=https://docs.flutter.dev/deployment/android#signing-the-app>Flutter docs: Signing android app</a>
 
