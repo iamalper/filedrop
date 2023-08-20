@@ -13,6 +13,8 @@ class DbFile {
   ///"Status" of the file. Should set `upload` if file sent or `download` if file got.
   final DbFileStatus fileStatus;
 
+  @Deprecated("No longer depend to file type for opening file")
+
   ///It is type of the file as image, video, audio or text.
   ///It can be `null` if type of the file is unknown.
   final DbFileType? fileType;

@@ -9,7 +9,7 @@ import 'screens/receive_page.dart';
 import 'screens/send_page.dart';
 import 'classes/database.dart';
 import 'models.dart';
-import 'screens/dosyalar_page.dart';
+import 'screens/files_page.dart';
 import 'constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
