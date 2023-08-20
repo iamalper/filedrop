@@ -52,7 +52,7 @@ class _DosyalarState extends State<Dosyalar> {
                   leading: file.icon,
                   title: Text(file.name),
                   subtitle: Text(file.time.toIso8601String()),
-                  onTap: file.fileType != null ? () => file.open() : null,
+                  onTap: () => file.open(),
                 );
               },
             ),
