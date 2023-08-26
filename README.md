@@ -1,4 +1,4 @@
-# Weepy File Transfer
+# FileDrop
 
 A Simple file transfering app. It made with Flutter. It works on local networks.
 
