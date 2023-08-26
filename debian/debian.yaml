@@ -1,11 +1,11 @@
 flutter_app: 
-  command: filedrop
+  command: FileDrop
   arch: x64
   parent: /usr/local/lib
   nonInteractive: false
 
 control:
-  Package: filedrop
+  Package: FileDrop
   Version: 1.0.0
   Architecture: amd64
   Priority: optional
