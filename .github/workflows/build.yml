@@ -36,8 +36,8 @@ jobs:
       - name: Update version in debian.yaml
         run: sed -i 's/1.0.0/${{ steps.version.outputs.content }}/g' debian/debian.yaml
 
-      - name: Update version in wifi_transfer.desktop
-        run: sed -i 's/1.0.0/${{ steps.version.outputs.content }}/g' debian/gui/wifi_transfer.desktop
+      - name: Update version in FileDrop.desktop
+        run: sed -i 's/1.0.0/${{ steps.version.outputs.content }}/g' debian/gui/FileDrop.desktop
 
       - name: Download Android keystore
         id: android_keystore
