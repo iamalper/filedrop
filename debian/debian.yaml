@@ -1,11 +1,11 @@
 flutter_app: 
-  command: wifi_transfer
+  command: filedrop
   arch: x64
   parent: /usr/local/lib
   nonInteractive: false
 
 control:
-  Package: wifi-transfer
+  Package: filedrop
   Version: 1.0.0
   Architecture: amd64
   Priority: optional
