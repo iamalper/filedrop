@@ -6,7 +6,7 @@ import 'main.dart';
 
 class Constants {
   ///Folder name for incoming files
-  static const String saveFolder = "Weepy";
+  static const String saveFolder = "FileDrop";
 
   ///Http port for discovery, sending and recieving files
   static const port = 3242;
