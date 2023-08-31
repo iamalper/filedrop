@@ -172,7 +172,7 @@ class _MainWidgetState extends State<_MainWidget> {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: TextButton(
-                      key: const Key("dosya gönder button"),
+                      key: WidgetKeys.sendButton,
                       onPressed: kIsWeb
                           ? null
                           : () {
@@ -198,7 +198,7 @@ class _MainWidgetState extends State<_MainWidget> {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: TextButton(
-                      key: const Key("dosya al button"),
+                      key: WidgetKeys.receiveButton,
                       onPressed: kIsWeb
                           ? null
                           : () {
