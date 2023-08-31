@@ -20,5 +20,12 @@
     "unknownError":"Unknown error",
     "cantReadDatabase":"Can't read database",
     "noFileHistory":"No file history",
-    "clearFileHistory":"Clear history"
+    "clearFileHistory":"Clear history",
+    "leaveReview":"Leave a review",
+    "appPage":"App page",
+    "aboutFiledrop":"About FileDrop",
+    "publicGithubRepo":"Public Github repo",
+    "advancedSettings":"Advanced",
+    "version":"Version",
+    "buildNumber":"Build Number"
 }

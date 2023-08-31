@@ -20,5 +20,12 @@
         "unknownError":"Bilinmeyen hata",
         "cantReadDatabase":"Veritabanı okunamadı",
         "noFileHistory":"Henüz işlem yapılmadı",
-        "clearFileHistory":"Geçmişi temizle"
+        "clearFileHistory":"Geçmişi temizle",
+        "leaveReview":"İnceleme yazın",
+        "appPage":"Uygulama sayfası",
+        "aboutFiledrop":"FileDrop Hakkında",
+        "publicGithubRepo":"Açık Github deposu",
+        "advancedSettings":"Gelişmiş",
+        "version":"Sürüm",
+        "buildNumber":"Derleme Numarası"
 }
