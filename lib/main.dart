@@ -28,20 +28,26 @@ Future<void> main() async {
       return true;
     };
   }
+  final packageInfo = await PackageInfo.fromPlatform();
   final sharedPrefences = await SharedPreferences.getInstance();
   final isDark = sharedPrefences.getBool("isDark") == true;
   runApp(MaterialAppWidget(
     title: "Weep Transfer",
     isDarkDefault: isDark,
+    packageInfo: packageInfo,
   ));
 }
 
 class MaterialAppWidget extends StatelessWidget {
   final String title;
   final bool isDarkDefault;
+  final PackageInfo packageInfo;
   static late ValueNotifier<ThemeMode> valueNotifier;
   const MaterialAppWidget(
-      {super.key, required this.title, required this.isDarkDefault});
+      {super.key,
+      required this.title,
+      required this.isDarkDefault,
+      required this.packageInfo});
   @override
   Widget build(BuildContext context) {
     valueNotifier =
@@ -85,6 +91,7 @@ class MaterialAppWidget extends StatelessWidget {
                   .apply(fontSizeDelta: 1, fontSizeFactor: 1.1)),
           home: _MainWidget(
             isDark: (valueNotifier.value == ThemeMode.dark),
+            packageInfo: packageInfo,
           ),
         );
       },
@@ -96,7 +103,8 @@ List<DbFile> allFiles = [];
 
 class _MainWidget extends StatefulWidget {
   final bool isDark;
-  const _MainWidget({required this.isDark});
+  final PackageInfo packageInfo;
+  const _MainWidget({required this.isDark, required this.packageInfo});
 
   @override
   State<_MainWidget> createState() => _MainWidgetState();
@@ -136,7 +144,11 @@ class _MainWidgetState extends State<_MainWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Appbars.globalAppBar(isDark: widget.isDark),
+      appBar: Appbars.appBarWithSettings(
+        isDark: widget.isDark,
+        context: context,
+        packageInfo: widget.packageInfo,
+      ),
       body: Column(
         children: [
           Expanded(
