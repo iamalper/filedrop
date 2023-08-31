@@ -14,7 +14,7 @@ class DatabaseManager {
   Future<void> open() async {
     if (Platform.isLinux || Platform.isWindows) {
       sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
+      databaseFactory = databaseFactoryFfiNoIsolate;
     }
     _db = await openDatabase(
       "files.db",
