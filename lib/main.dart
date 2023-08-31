@@ -32,7 +32,7 @@ Future<void> main() async {
   final sharedPrefences = await SharedPreferences.getInstance();
   final isDark = sharedPrefences.getBool("isDark") == true;
   runApp(MaterialAppWidget(
-    title: "Weep Transfer",
+    title: "FileDrop",
     isDarkDefault: isDark,
     packageInfo: packageInfo,
   ));
