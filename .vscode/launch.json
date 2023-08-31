@@ -13,18 +13,6 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
-        },
-        {
-            "name": "Flutter Integration Tests",
-            "program": "integration_test",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "Flutter Integration Tests",
-            "program": "integration_test",
-            "request": "launch",
-            "type": "dart"
         }
     ]
 }
