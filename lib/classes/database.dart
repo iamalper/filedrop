@@ -8,7 +8,7 @@ class DatabaseManager {
 
   ///Open the database and creates tables if didn't created before.
   ///
-  ///Is is safe to reopen database after [stop] called.
+  ///Is is safe to reopen database after [close] called.
   ///
   ///It didn't enough tested for desktop platforms.
   Future<void> open() async {
