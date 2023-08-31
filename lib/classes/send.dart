@@ -1,14 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/animation.dart';
-import '../main.dart';
 import '../models.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
 import 'database.dart';
-
-class _MyHttpOverrides extends HttpOverrides {} //For using http apis from tests
 
 ///Class for all Sending jobs.
 ///
@@ -36,7 +32,6 @@ class Send {
   ///Throws `http error` if other device is busy.
   static Future<void> send(Device device, List<PlatformFile> files,
       {AnimationController? uploadAnimC, bool useDb = true}) async {
-    HttpOverrides.global = _MyHttpOverrides();
     final requestMultiPart = http.MultipartRequest("POST", device.uri);
     for (var file in files) {
       requestMultiPart.files
@@ -80,7 +75,6 @@ class Send {
         if (useDb) {
           await db.insert(dbFile);
         }
-        allFiles.add(dbFile);
       }
       uploadAnimC?.value = 1;
       if (useDb) {
