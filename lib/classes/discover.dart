@@ -17,8 +17,10 @@ class Discover {
     final String subnet = ip.substring(0, ip.lastIndexOf('.'));
     final client = http.Client();
     final List<Device> ips = [];
-    await for (var activeHost in NetworkDiscovery.discoverMultiplePorts(subnet,
-        [for (var i = Constants.minPort; i <= Constants.maxPort; i++) i])) {
+    final discoverMultiplePorts = NetworkDiscovery.discoverMultiplePorts(subnet,
+            [for (var i = Constants.minPort; i <= Constants.maxPort; i++) i])
+        .handleError((_) {});
+    await for (var activeHost in discoverMultiplePorts) {
       log("Host found ${activeHost.ip}", name: "Discovery");
       for (var openPort in activeHost.openPorts) {
         final port = openPort;
