@@ -29,7 +29,7 @@ For Android release build, you need to create your keystore and **key.properties
 Also you can set your **lib/firebase_options.dart** or crash reports will sent to my firebase console.
 ## Contribution
 I am not much experienced at Flutter so any advice or pull request welcomed (even typos in README or code comments).
-There is a lot of room for ui
+
 Also you can help with improving translations or translating another languages with committing in **lib/l10** folder.
 ### TODO
 - [ ] Handle connection lost while transfer and show proper error dialog
