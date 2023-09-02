@@ -34,7 +34,7 @@ Also you can help with improving translations or translating another languages w
 ### TODO
 - [ ] Handle connection lost while transfer and show proper error dialog
 - [ ] Convert throw types from `String` to `enum` or `exception`
-- [ ] Convert UI states from `integers` to `enum`
+- [ ] Convert UI states from `integer` to `enum`
 - [ ] Add setting for opt-out crash reporting
 - [ ] Add setting for change to system theme
 - [ ] Add logs for crash reporting
