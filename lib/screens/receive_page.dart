@@ -1,7 +1,12 @@
+import 'package:weepy/models.dart';
+
+import '../classes/exceptions.dart';
 import '../constants.dart';
 import 'package:flutter/material.dart';
 import '../classes/receive.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+enum _UiState { loading, listening, downloading, complete, error }
 
 class ReceivePage extends StatelessWidget {
   final bool isDark;
@@ -26,46 +31,34 @@ class ReceivePageInner extends StatefulWidget {
 class _ReceivePageInnerState extends State<ReceivePageInner>
     with TickerProviderStateMixin {
   late AnimationController _downloadAnimC;
-
+  late Receive _receive;
   late int _code;
-  late Future<void> _receiveFuture;
-  int _uiStatus = 0;
-  set uiStatus(int uiStatus) => setState(() => _uiStatus = uiStatus);
+  late List<DbFile> _files;
+  late String errorMessage;
+  var _uiStatus = _UiState.loading;
+  set uiStatus(_UiState uiStatus) => setState(() => _uiStatus = uiStatus);
   @override
   initState() {
     _downloadAnimC = AnimationController(vsync: this)
       ..addListener(() {
         setState(() {});
-      })
-      ..addStatusListener((status) {
-        if (_uiStatus != 2) {
-          uiStatus = 2; //Downloading
-        }
-        if (status == AnimationStatus.completed) {
-          if (Receive.files.isNotEmpty) {
-            uiStatus = 3; //Completed
-          } else {
-            uiStatus = 6; //Error
-          }
-        }
       });
-
-    _receiveFuture = Receive.listen(downloadAnimC: _downloadAnimC).then((code) {
+    _receive = Receive(
+      downloadAnimC: _downloadAnimC,
+      onAllFilesDownloaded: (files) {
+        _files = files;
+        uiStatus = _UiState.complete;
+      },
+    );
+    _receive.listen().then((code) {
       _code = code;
-      uiStatus = 1;
+      uiStatus = _UiState.listening;
     }).catchError((err) {
-      switch (err) {
-        case "ip error":
-          uiStatus = 4;
-          break;
-        case "Permission denied":
-          uiStatus = 5;
-          break;
-        case "web":
-          uiStatus = 7;
-          break;
-        default:
-          throw err;
+      if (err is FileDropException) {
+        errorMessage = err.getErrorMessage(AppLocalizations.of(context)!);
+        uiStatus = _UiState.error;
+      } else {
+        throw err;
       }
     });
 
@@ -75,15 +68,14 @@ class _ReceivePageInnerState extends State<ReceivePageInner>
   @override
   void dispose() {
     _downloadAnimC.dispose();
-    _receiveFuture.ignore();
-    Receive.stopListening();
+    _receive.stopListening();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     switch (_uiStatus) {
-      case 1:
+      case _UiState.listening:
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -94,7 +86,7 @@ class _ReceivePageInnerState extends State<ReceivePageInner>
             Assets.hotspot,
           ],
         );
-      case 2:
+      case _UiState.downloading:
         return Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -108,7 +100,7 @@ class _ReceivePageInnerState extends State<ReceivePageInner>
             )
           ]),
         );
-      case 3:
+      case _UiState.complete:
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -120,35 +112,22 @@ class _ReceivePageInnerState extends State<ReceivePageInner>
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: Receive.files.length,
+                itemCount: _files.length,
                 itemBuilder: (context, index) {
-                  final file = Receive.files[index];
+                  final file = _files[index];
                   return ListTile(
                     title: Text(file.name),
-                    onTap: file.fileType != null ? () => file.open() : null,
+                    onTap: file.open,
                   );
                 },
               ),
             )
           ],
         );
-      case 4:
-        return Text(
-          AppLocalizations.of(context)!.notConnectedToNetwork,
-          textAlign: TextAlign.center,
-        );
-      case 5:
-        return Text(
-          AppLocalizations.of(context)!.noStoragePermission,
-          textAlign: TextAlign.center,
-        );
-      case 6:
-        return Text(
-          AppLocalizations.of(context)!.unknownError,
-          textAlign: TextAlign.center,
-        );
-      default:
+      case _UiState.loading:
         return const CircularProgressIndicator();
+      case _UiState.error:
+        return Text(errorMessage);
     }
   }
 }

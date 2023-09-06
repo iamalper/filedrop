@@ -7,14 +7,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:weepy/classes/receive.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:weepy/models.dart';
 import 'fake_path_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  List<File> sendingFiles = [];
+  var sendingFiles = <File>[];
+  var downloadedFiles = <DbFile>[];
+  PathProviderPlatform.instance = FakePathProviderPlatform();
+  HttpOverrides.global = _MyHttpOverrides();
+  final recieve = Receive(
+      saveToTemp: true,
+      useDb: false,
+      onAllFilesDownloaded: (files) => downloadedFiles = files);
+
   setUpAll(() async {
-    PathProviderPlatform.instance = FakePathProviderPlatform();
-    HttpOverrides.global = _MyHttpOverrides();
     final tempDir = (await getTemporaryDirectory()).path;
     sendingFiles = [
       File(path.join(tempDir, "deneme 1.txt")),
@@ -26,7 +33,7 @@ void main() {
   });
 
   test('Discover, send and receive files', () async {
-    final code = await Receive.listen(saveToTemp: true, useDb: false);
+    final code = await recieve.listen();
     final allDevices = await Discover.discover();
     final device = allDevices.where((device) => device.code == code);
     expect(device, hasLength(1), reason: "Expected to discover itself");
@@ -40,20 +47,20 @@ void main() {
     await Send.send(device.single, pFiles, useDb: false);
     for (var i = 0; i < sendingFiles.length; i++) {
       final gidenDosya = sendingFiles[i];
-      final gelenDosya = File(Receive.files[i].path);
+      final gelenDosya = File(downloadedFiles[i].path);
       expect(gidenDosya.readAsBytesSync(), gelenDosya.readAsBytesSync(),
           reason: "All sent files expected to has same content as originals");
     }
   });
 
   tearDown(() {
-    for (var file in Receive.files) {
+    for (var file in downloadedFiles) {
       File(file.path).deleteSync();
     }
-    Receive.files = [];
+    downloadedFiles = [];
   });
-  tearDownAll(() async {
-    await Receive.stopListening();
+  tearDown(() async {
+    await recieve.stopListening();
     for (var sentFile in sendingFiles) {
       sentFile.deleteSync();
     }

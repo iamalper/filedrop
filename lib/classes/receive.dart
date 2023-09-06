@@ -12,6 +12,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:weepy/classes/exceptions.dart';
 import 'database.dart';
 import '../models.dart';
 import '../constants.dart';
@@ -21,61 +22,71 @@ import 'discover.dart';
 ///
 ///Available methods are [listen] and [stopListening]
 class Receive {
-  ///Saved files in current session
-  ///
-  ///All element must manually removed from list after displaying in the ui
-  static List<DbFile> files = [];
-  static final _ms = MediaStore();
-  static late Directory _tempDir;
-  static late int _code;
-  static HttpServer? _server;
-  static bool _isBusy = false;
+  final _files = <DbFile>[];
+  late MediaStore _ms;
+  final _tempDir = getTemporaryDirectory();
+  late int _code;
+  HttpServer? _server;
+  bool _isBusy = false;
+
+  ///If [useDb] is `true`, file informations will be saved to sqflite database.
+  ///Don't needed to open the database manually.
+  final bool useDb;
+
+  ///If [saveToTemp] is `true`, files will be saved to temp directory. It's useful for
+  ///testing because don't need for storage permissions
+  final bool saveToTemp;
+
+  ///If [downloadAnimC] is set, progress will be sent to it.
+  final AnimationController? downloadAnimC;
+
+  ///[port] listened for incoming connections. Should not set except testing or
+  ///other devices will require manual port setting.
+  final int? port;
+
+  ///[onDownloadStart] will be called when starting to download first time.
+  final void Function(int fileCount)? onDownloadStart;
+
+  ///[onFileDownloaded] will be called when a file downloaded succesfully.
+  final void Function(DbFile file)? onFileDownloaded;
+
+  ///[onAllFilesDownloaded] will be called when all files succesfully downloaded.
+  final void Function(List<DbFile> files)? onAllFilesDownloaded;
+
+  ///If [downloadAnimC] is set, progress will be sent to it.
+  Receive(
+      {this.downloadAnimC,
+      this.useDb = true,
+      this.saveToTemp = false,
+      this.port,
+      this.onDownloadStart,
+      this.onFileDownloaded,
+      this.onAllFilesDownloaded});
 
   ///Starts listening for discovery and recieving file(s).
   ///Handles one connection at once. If another device tires to match,
   ///sends `400 Bad request` as response
   ///
-  ///[port] listened for incoming connections. Should not set except testing or
-  ///other devices will require manual port setting.
-  ///
-  ///If [downloadAnimC] is set, progress will be sent to it.
-  ///
-  ///If [saveToTemp] is `true`, files will be saved to temp directory. It's useful for
-  ///testing because don't need for storage permissions
-  ///
-  ///If [useDb] is `true`, file informations will be saved to sqflite database.
-  ///Don't needed to open the database manually.
-  ///Must set to `false` for prevent database usage.
-  ///
   ///Returns the code generated for discovery. Other devices should select this code for
   ///connecting to this device
-  static Future<int> listen(
-      {int? port,
-      bool useDb = true,
-      bool saveToTemp = false,
-      AnimationController? downloadAnimC}) async {
-    if ((Platform.isAndroid || Platform.isIOS)) {
+  Future<int> listen() async {
+    if (!saveToTemp && (Platform.isAndroid || Platform.isIOS)) {
       //These platforms needs storage permissions (only tested on Android)
       final perm = await Permission.storage.request();
-      if (!perm.isGranted) throw "Permission denied";
+      if (!perm.isGranted) throw NoStoragePermissionException();
+      _ms = MediaStore();
+      MediaStore.appFolder = Constants.saveFolder;
     }
 
     final ip = await Discover.getMyIp();
     _code = Random().nextInt(8888) + 1111;
-    MediaStore.appFolder = Constants.saveFolder;
-    _tempDir = await getTemporaryDirectory();
+
     _isBusy = false;
 
     for (var port = Constants.minPort; port <= Constants.maxPort; port++) {
       try {
-        _server = await shelf.serve(
-            (request) => _requestMethod(request,
-                useDb: useDb,
-                saveToTemp: saveToTemp,
-                downloadAnimC: downloadAnimC),
-            ip,
-            port,
-            poweredByHeader: null);
+        _server =
+            await shelf.serve(_requestMethod, ip, port, poweredByHeader: null);
         break;
       } on SocketException catch (_) {
         if (port < Constants.maxPort) {
@@ -90,10 +101,7 @@ class Receive {
     return _code;
   }
 
-  static Future<Response> _requestMethod(Request request,
-      {required bool useDb,
-      required bool saveToTemp,
-      AnimationController? downloadAnimC}) async {
+  Future<Response> _requestMethod(Request request) async {
     if (_isBusy) {
       //Deny new connections if busy
       log("Connection denied, because busy", name: "Receive server");
@@ -114,7 +122,7 @@ class Receive {
                 MediaType.parse(request.headers['content-type']!)
                     .parameters["boundary"]!)
             .bind(request.read());
-
+        onDownloadStart?.call(await stream.length);
         final db = DatabaseManager();
         if (useDb) {
           await db.open();
@@ -134,8 +142,8 @@ class Receive {
             file = _generateFileName(file, dir);
           } else {
             //Saving to the temp folder for mediastore or testing
-            file = File(join(_tempDir.path, filename));
-            file = _generateFileName(file, _tempDir);
+            file = File(join((await _tempDir).path, filename));
+            file = _generateFileName(file, await _tempDir);
           }
           final totalBytesPer100 = request.contentLength! / 100;
           int downloadedBytesto100 = 0;
@@ -148,7 +156,11 @@ class Receive {
               downloadedBytesto100 - totalBytesPer100;
             }
           }
-          final mimeType = lookupMimeType(file.path);
+          final dbFile = DbFile(
+              name: filename,
+              time: DateTime.now(),
+              fileStatus: DbFileStatus.download,
+              path: file.path);
           final bool isSaved;
           if ((Platform.isLinux || Platform.isWindows) || saveToTemp) {
             //Skipping Media Store confirmation for desktop platforms or saving to temp folder
@@ -161,32 +173,16 @@ class Receive {
                 dirName: DirName.download);
           }
           if (isSaved) {
-            //Setting file type
-            String? type;
-            if (mimeType != null) {
-              if (mimeType.startsWith("image/")) {
-                type = "image";
-              } else if (mimeType.startsWith("audio/")) {
-                type = "audio";
-              } else if (mimeType.startsWith("video/")) {
-                type = "video";
-              }
-            }
-            final dbFile = DbFile(
-                name: filename,
-                time: DateTime.now(),
-                fileStatus: DbFileStatus.download,
-                fileType: type == null
-                    ? null
-                    : DbFileType.values
-                        .singleWhere((element) => element.name == type),
-                path: file.path);
-            files.add(dbFile);
+            _files.add(dbFile);
+            onFileDownloaded?.call(dbFile);
             if (useDb) {
               await db.insert(dbFile);
             }
+          } else {
+            throw FileCouldntSavedException(dbFile);
           }
         }
+        onAllFilesDownloaded?.call(_files);
         if (useDb) {
           await db.close();
         }
@@ -221,5 +217,5 @@ class Receive {
   ///Closes the listening server.
   ///
   ///Is is safe to call before [listen] or after [listen] .
-  static Future<void>? stopListening() => _server?.close();
+  Future<void>? stopListening() => _server?.close();
 }
