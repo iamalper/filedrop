@@ -149,20 +149,16 @@ class Receive {
             }
           }
           final mimeType = lookupMimeType(file.path);
-          late bool isSaved;
-          if ((Platform.isLinux || Platform.isWindows)) {
-            //Skipping Media Store confirmation for desktop platforms
+          final bool isSaved;
+          if ((Platform.isLinux || Platform.isWindows) || saveToTemp) {
+            //Skipping Media Store confirmation for desktop platforms or saving to temp folder
             isSaved = true;
-          } else if (saveToTemp) {
+          } else {
             //Using Media Store for mobile platforms
             isSaved = await _ms.saveFile(
                 tempFilePath: file.path,
                 dirType: DirType.download,
                 dirName: DirName.download);
-          } else {
-            //Don't use Media Store api for testing because we use temp folder for testing
-            //for not brothering with permissions.
-            isSaved = true;
           }
           if (isSaved) {
             //Setting file type
@@ -195,7 +191,7 @@ class Receive {
           await db.close();
         }
         return Response.ok(null);
-      } catch (e) {
+      } catch (_) {
         rethrow;
       } finally {
         //File downloaded successfully or failed. Resetting progess for both cases.
