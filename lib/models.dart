@@ -39,6 +39,7 @@ class DbFile {
   ///[time] is the time when file operation is completed.
   const DbFile(
       {required this.name,
+      @Deprecated("No longer depend to file type for opening file")
       this.fileType,
       required this.path,
       required this.time,
