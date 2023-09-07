@@ -18,6 +18,8 @@
         "filesSent":"Dosyalar gönderildi",
         "noStoragePermission":"Dosya kaydetme izni olmadan dosya kaydedilemez",
         "fileCoulntSaved":"Dosyayı indirmede hata\nYeterli depolama alanı olduğundan emin olun",
+        "connectionLost":"Hedefle olan bağlantı kesildi.\nHedefin hala aktif olduğuna emin olun.",
+        "otherDeviceBusy":"Hedef meşgul, daha sonra tekrar deneyin",
         "cantReadDatabase":"Veritabanı okunamadı",
         "noFileHistory":"Henüz işlem yapılmadı",
         "clearFileHistory":"Geçmişi temizle",

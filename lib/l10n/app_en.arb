@@ -18,6 +18,8 @@
     "filesSent":"Files sent",
     "noStoragePermission":"Can't download file without storage permission",
     "fileCoulntSaved":"Error at downloading file\nCheck if you are enough storage space",
+    "connectionLost":"Connection lost to target.\nMake sure target still listening.",
+    "otherDeviceBusy":"Target is busy, please try again later",
     "cantReadDatabase":"Can't read database",
     "noFileHistory":"No file history",
     "clearFileHistory":"Clear history",

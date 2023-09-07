@@ -33,12 +33,13 @@ class IpException implements FileDropException {
       appLocalizations.notConnectedToNetwork;
 }
 
+///Throws when an error happened during file send or receive.
+///
+///Use [getErrorMessage] for localised error message.
 class ConnectionLostException implements FileDropException {
   @override
-  String getErrorMessage(AppLocalizations appLocalizations) {
-    // TODO: implement getErrorMessage
-    throw UnimplementedError();
-  }
+  String getErrorMessage(AppLocalizations appLocalizations) =>
+      appLocalizations.connectionLost;
 }
 
 ///Throws when storage permission request rejected by user.
@@ -50,10 +51,11 @@ class NoStoragePermissionException implements FileDropException {
       appLocalizations.noStoragePermission;
 }
 
+///Throws when user tired to send file but other device is busy.
+///
+///Use [getErrorMessage] for localised error message.
 class OtherDeviceBusyException implements FileDropException {
   @override
-  String getErrorMessage(AppLocalizations appLocalizations) {
-    // TODO: implement getErrorMessage
-    throw UnimplementedError();
-  }
+  String getErrorMessage(AppLocalizations appLocalizations) =>
+      appLocalizations.otherDeviceBusy;
 }
