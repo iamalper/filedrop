@@ -19,7 +19,7 @@ class FileCouldntSavedException implements FileDropException {
 
   @override
   String getErrorMessage(AppLocalizations appLocalizations) =>
-      appLocalizations.unknownError;
+      appLocalizations.fileCoulntSaved;
 }
 
 ///Throws when can't get its own ip adress.
@@ -48,4 +48,12 @@ class NoStoragePermissionException implements FileDropException {
   @override
   String getErrorMessage(AppLocalizations appLocalizations) =>
       appLocalizations.noStoragePermission;
+}
+
+class OtherDeviceBusyException implements FileDropException {
+  @override
+  String getErrorMessage(AppLocalizations appLocalizations) {
+    // TODO: implement getErrorMessage
+    throw UnimplementedError();
+  }
 }

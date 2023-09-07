@@ -1,15 +1,17 @@
 import 'dart:async';
 import 'package:flutter/animation.dart';
+import 'package:dio/dio.dart';
+import 'package:weepy/classes/exceptions.dart';
 import '../models.dart';
-import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
-import 'package:mime/mime.dart';
 import 'database.dart';
 
 ///Class for all Sending jobs.
 ///
 ///Available methods are [filePick] and [send]
 class Sender {
+  static final _dio = Dio();
+
   ///Pick files which are about to send.
   ///
   ///You should pass them to [send] method.
@@ -29,46 +31,45 @@ class Sender {
   ///If [useDb] is `true`, file informations will be saved to sqflite database.
   ///Must set to `false` for prevent database usage.
   ///
-  ///Throws `http error` if other device is busy.
+  ///Throws [OtherDeviceBusyException] if other device is busy.
   static Future<void> send(Device device, List<PlatformFile> files,
       {AnimationController? uploadAnimC, bool useDb = true}) async {
-    final requestMultiPart = http.MultipartRequest("POST", device.uri);
-    for (var file in files) {
-      requestMultiPart.files
-          .add(await http.MultipartFile.fromPath(file.name, file.path!));
+    final formData = FormData.fromMap({
+      'files': files
+          .map((e) => MultipartFile.fromFileSync(e.path!, filename: e.name))
+          .toList(),
+    });
+    int uploadedPer100 = 0;
+    final Response<void> response;
+    try {
+      response = await _dio.post<void>(device.uri.toString(),
+          data: formData,
+          options: Options(
+            headers: {
+              Headers.contentLengthHeader: formData.length,
+            },
+          ), onSendProgress: ((count, total) {
+        final totalPer100 = total / 100;
+        uploadedPer100 += count;
+        if (uploadedPer100 >= totalPer100) {
+          uploadAnimC?.value += 0.01;
+          uploadedPer100 - totalPer100;
+        }
+      }));
+    } catch (_) {
+      throw ConnectionLostException();
     }
-    final requestStreamed = http.StreamedRequest("POST", device.uri);
-    final byteStream = requestMultiPart.finalize();
-    requestStreamed.contentLength = requestMultiPart.contentLength;
-    requestStreamed.headers.addAll(requestMultiPart.headers);
-    final totalBytesPer100 = requestMultiPart.contentLength / 100;
-    int uploadedBytesTo100 = 0;
-    await for (var bytes in byteStream) {
-      requestStreamed.sink.add(bytes);
 
-      uploadedBytesTo100 += bytes.length;
-      if (uploadedBytesTo100 >= totalBytesPer100) {
-        uploadAnimC?.value += 0.01;
-        uploadedBytesTo100 - totalBytesPer100;
-      }
-    }
-    requestStreamed.sink.close();
-    final response = await requestStreamed.send();
     if (response.statusCode != 200) {
-      throw "http error";
+      throw OtherDeviceBusyException();
     } else {
       final db = DatabaseManager();
       if (useDb) {
         await db.open();
       }
       for (var file in files) {
-        final mime = lookupMimeType(file.path!);
         final dbFile = DbFile(
             name: file.name,
-            fileType: mime == null
-                ? null
-                : DbFileType.values
-                    .singleWhere((element) => mime.startsWith(element.name)),
             fileStatus: DbFileStatus.upload,
             path: file.path!,
             time: DateTime.now());

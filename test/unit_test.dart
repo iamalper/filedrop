@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:weepy/classes/discover.dart';
+import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/classes/sender.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:weepy/classes/receiver.dart';
@@ -53,13 +54,27 @@ void main() {
     }
   });
 
+  test("Error handling", () async {
+    expect(
+        Sender.send(
+            Device(adress: await Discover.getMyIp(), code: 1000),
+            [
+              PlatformFile(
+                  readStream: sendingFiles[1].openRead(),
+                  size: sendingFiles[1].lengthSync(),
+                  name: path.basename(sendingFiles[1].path),
+                  path: sendingFiles[1].path),
+            ],
+            useDb: false),
+        throwsA(isA<ConnectionLostException>()));
+  });
   tearDown(() {
     for (var file in downloadedFiles) {
       File(file.path).deleteSync();
     }
     downloadedFiles = [];
   });
-  tearDown(() async {
+  tearDownAll(() async {
     await recieve.stopListening();
     for (var sentFile in sendingFiles) {
       sentFile.deleteSync();

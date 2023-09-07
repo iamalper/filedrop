@@ -17,7 +17,7 @@
         "filesSaved":"Dosyalar indirilenler klasörüne kaydedildi",
         "filesSent":"Dosyalar gönderildi",
         "noStoragePermission":"Dosya kaydetme izni olmadan dosya kaydedilemez",
-        "unknownError":"Bilinmeyen hata",
+        "fileCoulntSaved":"Dosyayı indirmede hata\nYeterli depolama alanı olduğundan emin olun",
         "cantReadDatabase":"Veritabanı okunamadı",
         "noFileHistory":"Henüz işlem yapılmadı",
         "clearFileHistory":"Geçmişi temizle",

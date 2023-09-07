@@ -17,7 +17,7 @@
     "filesSaved":"Files saved to Downloads folder",
     "filesSent":"Files sent",
     "noStoragePermission":"Can't download file without storage permission",
-    "unknownError":"Unknown error",
+    "fileCoulntSaved":"Error at downloading file\nCheck if you are enough storage space",
     "cantReadDatabase":"Can't read database",
     "noFileHistory":"No file history",
     "clearFileHistory":"Clear history",
