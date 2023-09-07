@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:weepy/classes/exceptions.dart';
 import '../classes/discover.dart' as discover_class; //for prevent collusion
-import '../classes/send.dart';
+import '../classes/sender.dart';
 import '../constants.dart';
 import '../models.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+enum _UiState { scanning, select, sending, complete, error }
 
 class SendPage extends StatelessWidget {
   final bool isDark;
@@ -25,11 +28,11 @@ class SendPageInner extends StatefulWidget {
 
 class _SendPageInnerState extends State<SendPageInner>
     with TickerProviderStateMixin {
-  int _uiState = 1;
-  late Future<void> _discover;
+  var _uiState = _UiState.scanning;
   late List<Device> _ipList;
   late AnimationController _uploadAnimC;
-  set uiState(int uiState) => setState(() => _uiState = uiState);
+  late String _errorMessage;
+  set uiState(_UiState uiState) => setState(() => _uiState = uiState);
 
   @override
   void initState() {
@@ -37,18 +40,24 @@ class _SendPageInnerState extends State<SendPageInner>
       ..addListener(() {
         setState(() {});
       });
-    _discover = discover_class.Discover.discover().then((ips) {
-      _ipList = ips;
-      uiState = 6;
-    }).catchError((_) {
-      uiState = 5; //Didn't connected any network
-    });
     super.initState();
+    _discover();
+  }
+
+  Future<void> _discover() async {
+    try {
+      _ipList = await discover_class.Discover.discover();
+      uiState = _UiState.select;
+    } on FileDropException catch (e) {
+      if (context.mounted) {
+        _errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
+        uiState = _UiState.error;
+      }
+    }
   }
 
   @override
   void dispose() {
-    _discover.ignore();
     _uploadAnimC.dispose();
     super.dispose();
   }
@@ -56,7 +65,7 @@ class _SendPageInnerState extends State<SendPageInner>
   @override
   Widget build(BuildContext context) {
     switch (_uiState) {
-      case 2:
+      case _UiState.sending:
         return Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -67,17 +76,17 @@ class _SendPageInnerState extends State<SendPageInner>
             ),
           ]),
         );
-      case 3:
+      case _UiState.complete:
         return Text(
           AppLocalizations.of(context)!.filesSent,
           textAlign: TextAlign.center,
         );
-      case 7:
+      case _UiState.error:
         return Text(
-          AppLocalizations.of(context)!.unknownError,
+          _errorMessage,
           textAlign: TextAlign.center,
         );
-      case 1:
+      case _UiState.scanning:
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -85,12 +94,8 @@ class _SendPageInnerState extends State<SendPageInner>
             Assets.wifi,
           ],
         );
-      case 5:
-        return Text(
-          AppLocalizations.of(context)!.notConnectedToNetwork,
-          textAlign: TextAlign.center,
-        );
-      case 6: //network scanned
+
+      case _UiState.select: //network scanned
         if (_ipList.isEmpty) {
           return Text(
             AppLocalizations.of(context)!.noReceiverDeviceFound,
@@ -116,18 +121,18 @@ class _SendPageInnerState extends State<SendPageInner>
   }
 
   Future<void> _send(Device device, AnimationController uploadAnimC) async {
-    final file = await Send.filePick();
+    final file = await Sender.filePick();
     if (file != null) {
-      uiState = 2;
-      Send.send(device, file, uploadAnimC: uploadAnimC).catchError((err) {
-        switch (err) {
-          case "ip error":
-            uiState = 5;
-            break;
-          default:
-            uiState = 7;
+      uiState = _UiState.sending;
+      try {
+        await Sender.send(device, file, uploadAnimC: uploadAnimC);
+        uiState = _UiState.complete;
+      } on FileDropException catch (e) {
+        if (context.mounted) {
+          _errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
+          uiState = _UiState.error;
         }
-      }).then((_) => uiState = 3);
+      }
     }
   }
 }

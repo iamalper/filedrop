@@ -21,7 +21,7 @@ import 'discover.dart';
 ///Class for all Recieve jobs
 ///
 ///Available methods are [listen] and [stopListening]
-class Receive {
+class Receiver {
   final _files = <DbFile>[];
   late MediaStore _ms;
   final _tempDir = getTemporaryDirectory();
@@ -53,8 +53,12 @@ class Receive {
   ///[onAllFilesDownloaded] will be called when all files succesfully downloaded.
   final void Function(List<DbFile> files)? onAllFilesDownloaded;
 
-  ///If [downloadAnimC] is set, progress will be sent to it.
-  Receive(
+  ///Listen and receive files from other devices.
+  ///
+  ///Set [downloadAnimC], [onDownloadStart], [onFileDownloaded], [onAllFilesDownloaded] for animating download progess.
+  ///
+  ///Call [listen] for start listening.
+  Receiver(
       {this.downloadAnimC,
       this.useDb = true,
       this.saveToTemp = false,

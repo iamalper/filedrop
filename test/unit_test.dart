@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:weepy/classes/discover.dart';
-import 'package:weepy/classes/send.dart';
+import 'package:weepy/classes/sender.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:weepy/classes/receive.dart';
+import 'package:weepy/classes/receiver.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:weepy/models.dart';
@@ -16,7 +16,7 @@ void main() {
   var downloadedFiles = <DbFile>[];
   PathProviderPlatform.instance = FakePathProviderPlatform();
   HttpOverrides.global = _MyHttpOverrides();
-  final recieve = Receive(
+  final recieve = Receiver(
       saveToTemp: true,
       useDb: false,
       onAllFilesDownloaded: (files) => downloadedFiles = files);
@@ -44,7 +44,7 @@ void main() {
             size: sendingFiles[index].lengthSync(),
             name: path.basename(sendingFiles[index].path),
             path: sendingFiles[index].path));
-    await Send.send(device.single, pFiles, useDb: false);
+    await Sender.send(device.single, pFiles, useDb: false);
     for (var i = 0; i < sendingFiles.length; i++) {
       final gidenDosya = sendingFiles[i];
       final gelenDosya = File(downloadedFiles[i].path);

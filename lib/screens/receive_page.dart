@@ -3,7 +3,7 @@ import 'package:weepy/models.dart';
 import '../classes/exceptions.dart';
 import '../constants.dart';
 import 'package:flutter/material.dart';
-import '../classes/receive.dart';
+import '../classes/receiver.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 enum _UiState { loading, listening, downloading, complete, error }
@@ -31,11 +31,17 @@ class ReceivePageInner extends StatefulWidget {
 class _ReceivePageInnerState extends State<ReceivePageInner>
     with TickerProviderStateMixin {
   late AnimationController _downloadAnimC;
-  late Receive _receive;
+  late Receiver _receiveClass;
   late int _code;
   late List<DbFile> _files;
   late String errorMessage;
+
+  ///Use [uiStatus] setter for updating state without [setState]
   var _uiStatus = _UiState.loading;
+
+  ///Setter for ui state.
+  ///
+  ///Don't need warp with [setState].
   set uiStatus(_UiState uiStatus) => setState(() => _uiStatus = uiStatus);
   @override
   initState() {
@@ -43,32 +49,33 @@ class _ReceivePageInnerState extends State<ReceivePageInner>
       ..addListener(() {
         setState(() {});
       });
-    _receive = Receive(
+    _receiveClass = Receiver(
       downloadAnimC: _downloadAnimC,
       onAllFilesDownloaded: (files) {
         _files = files;
         uiStatus = _UiState.complete;
       },
     );
-    _receive.listen().then((code) {
-      _code = code;
+    _receive();
+    super.initState();
+  }
+
+  Future<void> _receive() async {
+    try {
+      _code = await _receiveClass.listen();
       uiStatus = _UiState.listening;
-    }).catchError((err) {
-      if (err is FileDropException) {
+    } on FileDropException catch (err) {
+      if (context.mounted) {
         errorMessage = err.getErrorMessage(AppLocalizations.of(context)!);
         uiStatus = _UiState.error;
-      } else {
-        throw err;
       }
-    });
-
-    super.initState();
+    }
   }
 
   @override
   void dispose() {
     _downloadAnimC.dispose();
-    _receive.stopListening();
+    _receiveClass.stopListening();
     super.dispose();
   }
 

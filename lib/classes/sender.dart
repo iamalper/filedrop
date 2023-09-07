@@ -9,7 +9,7 @@ import 'database.dart';
 ///Class for all Sending jobs.
 ///
 ///Available methods are [filePick] and [send]
-class Send {
+class Sender {
   ///Pick files which are about to send.
   ///
   ///You should pass them to [send] method.

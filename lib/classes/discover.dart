@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:network_discovery/network_discovery.dart';
+import 'package:weepy/classes/exceptions.dart';
 import '../constants.dart';
 import 'package:http/http.dart' as http;
 import '../models.dart';
@@ -34,7 +35,7 @@ class Discover {
           ips.add(Device(
               adress: activeHost.ip, code: json["code"] as int, port: port));
           log("Found FileDrop instance", name: "Discovery");
-        } on AssertionError catch (_) {
+        } catch (_) {
           log("Port $port is not valid FileDrop instance", name: "Discovery");
           continue;
         }
@@ -46,11 +47,11 @@ class Discover {
 
   ///Gets local network ip adress
   ///
-  ///Throws `ip error` if can't get own ip adress or didn't connected to a local network.
+  ///Throws [IpException] if can't get own ip adress or didn't connected to a local network.
   static Future<String> getMyIp() async {
     final ip = await NetworkDiscovery.discoverDeviceIpAddress();
     if (ip == "") {
-      throw "ip error";
+      throw IpException();
     }
     return ip;
   }
