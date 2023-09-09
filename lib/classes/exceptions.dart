@@ -3,8 +3,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 ///Base class for FileDrop exceptions.
 ///
-///Has [getErrorMessage] method for localised error messages.
+///Use [getErrorMessage] method for localised error messages.
 abstract class FileDropException implements Exception {
+  ///Returns localised simple error message for end user.
   String getErrorMessage(AppLocalizations appLocalizations);
 }
 

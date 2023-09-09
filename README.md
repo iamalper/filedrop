@@ -33,9 +33,9 @@ I am not much experienced at Flutter so any advice or pull request welcomed (eve
 Also you can help with improving translations or translating another languages with committing in **lib/l10** folder.
 ### TODO
 - [ ] Handle connection lost while transfer and show proper error dialog
-- [ ] Convert throw types from `String` to `enum` or `exception`
-- [ ] Convert UI states from `integer` to `enum`
-- [ ] Add setting for opt-out crash reporting
+- [x] Convert throw types from `String` to `enum` or `exception`
+- [x] Convert UI states from `integer` to `enum`
+- [x] Add setting for opt-out crash reporting
 - [ ] Add setting for change to system theme
 - [ ] Add logs for crash reporting
 - [ ] Find a way to build for windows in actions script

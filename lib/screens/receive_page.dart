@@ -51,6 +51,7 @@ class _ReceivePageInnerState extends State<ReceivePageInner>
       });
     _receiveClass = Receiver(
       downloadAnimC: _downloadAnimC,
+      onDownloadStart: () => uiStatus = _UiState.downloading,
       onAllFilesDownloaded: (files) {
         _files = files;
         uiStatus = _UiState.complete;

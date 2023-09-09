@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screens/receive_page.dart';
 import 'screens/send_page.dart';
-import 'classes/database.dart';
 import 'models.dart';
 import 'screens/files_page.dart';
 import 'constants.dart';
@@ -18,23 +17,31 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final sharedPrefences = await SharedPreferences.getInstance();
   if (kReleaseMode && (Platform.isAndroid || Platform.isIOS)) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+    final useCrashReporting =
+        sharedPrefences.getBool("crashRepostsEnable") ?? true;
+    FlutterError.onError = useCrashReporting
+        ? FirebaseCrashlytics.instance.recordFlutterFatalError
+        : null;
+    PlatformDispatcher.instance.onError = useCrashReporting
+        ? (error, stack) {
+            FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+            return true;
+          }
+        : null;
   }
   final packageInfo = await PackageInfo.fromPlatform();
-  final sharedPrefences = await SharedPreferences.getInstance();
-  final isDark = sharedPrefences.getBool("isDark") == true;
+
+  final isDark = sharedPrefences.getBool("isDark") ?? false;
   runApp(MaterialAppWidget(
     title: "FileDrop",
     isDarkDefault: isDark,
     packageInfo: packageInfo,
+    sharedPreferences: sharedPrefences,
   ));
 }
 
@@ -42,12 +49,14 @@ class MaterialAppWidget extends StatelessWidget {
   final String title;
   final bool isDarkDefault;
   final PackageInfo packageInfo;
+  final SharedPreferences sharedPreferences;
   static late ValueNotifier<ThemeMode> valueNotifier;
   const MaterialAppWidget(
       {super.key,
       required this.title,
       required this.isDarkDefault,
-      required this.packageInfo});
+      required this.packageInfo,
+      required this.sharedPreferences});
   @override
   Widget build(BuildContext context) {
     valueNotifier =
@@ -90,9 +99,9 @@ class MaterialAppWidget extends StatelessWidget {
                   .merge(Typography().white)
                   .apply(fontSizeDelta: 1, fontSizeFactor: 1.1)),
           home: _MainWidget(
-            isDark: (valueNotifier.value == ThemeMode.dark),
-            packageInfo: packageInfo,
-          ),
+              isDark: (valueNotifier.value == ThemeMode.dark),
+              packageInfo: packageInfo,
+              sharedPreferences: sharedPreferences),
         );
       },
     );
@@ -104,62 +113,32 @@ List<DbFile> allFiles = [];
 class _MainWidget extends StatefulWidget {
   final bool isDark;
   final PackageInfo packageInfo;
-  const _MainWidget({required this.isDark, required this.packageInfo});
+  final SharedPreferences sharedPreferences;
+  const _MainWidget(
+      {required this.isDark,
+      required this.packageInfo,
+      required this.sharedPreferences});
 
   @override
   State<_MainWidget> createState() => _MainWidgetState();
 }
 
 class _MainWidgetState extends State<_MainWidget> {
-  final db = DatabaseManager();
-
-  late Future<void> dbFuture;
-  bool loaded = false;
-  bool dbError = false;
-
-  @override
-  void initState() {
-    dbFuture = db.open().then((_) async {
-      final allFilesTmp = await db.files;
-      setState(() {
-        allFiles = allFilesTmp;
-        loaded = true;
-      });
-    }).catchError((_) {
-      setState(() {
-        dbError = true;
-        loaded = true;
-      });
-    });
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    dbFuture.ignore();
-    db.close();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: Appbars.appBarWithSettings(
-        isDark: widget.isDark,
-        context: context,
-        packageInfo: widget.packageInfo,
-      ),
+          isDark: widget.isDark,
+          context: context,
+          packageInfo: widget.packageInfo,
+          sharedPreferences: widget.sharedPreferences),
       body: Column(
         children: [
-          Expanded(
+          const Expanded(
             flex: 3,
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Dosyalar(
-                allFiles: allFiles,
-                loaded: loaded,
-                dbError: dbError,
-              ),
+              padding: EdgeInsets.all(8.0),
+              child: Dosyalar(),
             ),
           ),
           Expanded(

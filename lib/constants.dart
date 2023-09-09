@@ -42,7 +42,8 @@ class Appbars {
   static AppBar appBarWithSettings(
           {required bool isDark,
           required BuildContext context,
-          required PackageInfo packageInfo}) =>
+          required PackageInfo packageInfo,
+          required SharedPreferences sharedPreferences}) =>
       AppBar(actions: [
         _themeSwitch(isDark),
         IconButton(
@@ -51,7 +52,9 @@ class Appbars {
                   context,
                   MaterialPageRoute(
                       builder: (context) => SettingsPage(
-                          isDark: isDark, packageInfo: packageInfo)));
+                          isDark: isDark,
+                          packageInfo: packageInfo,
+                          sharedPreferences: sharedPreferences)));
             },
             icon: const Icon(Icons.settings)),
       ]);

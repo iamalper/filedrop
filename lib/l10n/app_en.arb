@@ -28,6 +28,9 @@
     "aboutFiledrop":"About FileDrop",
     "publicGithubRepo":"Public Github repo",
     "advancedSettings":"Advanced",
+    "crashReporting":"Crash Reporing",
+    "crashReportingNotAvailable":"Crash reporting not available for desktop",
+    "crashRepostingDescription":"Automatically send crash reports to improve FileDrop.",
     "version":"Version",
     "buildNumber":"Build Number"
 }

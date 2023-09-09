@@ -34,20 +34,12 @@ class DatabaseManager {
   Future<void> insert(DbFile file) async {
     switch (file.fileStatus) {
       case DbFileStatus.upload:
-        await _db.insert("uploaded", {
-          "name": file.name,
-          "type": file.fileType?.name,
-          "time": file.timeEpoch,
-          "path": file.path
-        });
+        await _db.insert("uploaded",
+            {"name": file.name, "time": file.timeEpoch, "path": file.path});
         break;
       case DbFileStatus.download:
-        await _db.insert("downloaded", {
-          "name": file.name,
-          "type": file.fileType?.name,
-          "time": file.timeEpoch,
-          "path": file.path
-        });
+        await _db.insert("downloaded",
+            {"name": file.name, "time": file.timeEpoch, "path": file.path});
         break;
     }
   }

@@ -1,4 +1,3 @@
-import 'constants.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 
@@ -13,12 +12,6 @@ class DbFile {
   ///"Status" of the file. Should set `upload` if file sent or `download` if file got.
   final DbFileStatus fileStatus;
 
-  @Deprecated("No longer depend to file type for opening file")
-
-  ///It is type of the file as image, video, audio or text.
-  ///It can be `null` if type of the file is unknown.
-  final DbFileType? fileType;
-
   ///It is full path of the file. It's using to open the file.
   final String path;
 
@@ -31,16 +24,11 @@ class DbFile {
   ///
   ///[fileStatus] should set `upload` if file sent or `download` if file got.
   ///
-  ///[fileType] is type of the file as image, video, audio or text.
-  ///It can be `null` if type of the file is unknown.
-  ///
   ///[path] is full path of the file. It's using to open the file.
   ///
   ///[time] is the time when file operation is completed.
   const DbFile(
       {required this.name,
-      @Deprecated("No longer depend to file type for opening file")
-      this.fileType,
       required this.path,
       required this.time,
       required this.fileStatus});
@@ -49,8 +37,6 @@ class DbFile {
   DbFile.uploadedFromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.upload,
-        fileType = DbFileType.values
-            .singleWhere((element) => element.name == map["type"]),
         time = DateTime.fromMillisecondsSinceEpoch(map["time"]),
         path = map["path"];
 
@@ -58,8 +44,6 @@ class DbFile {
   DbFile.downloadedFromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.download,
-        fileType = DbFileType.values
-            .singleWhere((element) => element.name == map["type"]),
         time = DateTime.fromMillisecondsSinceEpoch(map["time"]),
         path = map["path"];
 
@@ -86,7 +70,7 @@ class DbFile {
   ///dbFile{name: [name], fileType: [fileType].name, time: [time], fileStatus: [fileStatus].name}
   @override
   String toString() =>
-      "dbFile{name: $name, fileType: ${fileType?.name}, time: $time, fileStatus: ${fileStatus.name}}";
+      "dbFile{name: $name, time: $time, fileStatus: ${fileStatus.name}}";
 }
 
 class Device {
@@ -108,8 +92,7 @@ class Device {
   ///see same code each devices.
   ///
   ///[port] is the port number of device. Should not set unless testing.
-  const Device(
-      {required this.adress, required this.code, this.port = Constants.port});
+  const Device({required this.adress, required this.code, required this.port});
 
   ///Uri object for device.
   ///

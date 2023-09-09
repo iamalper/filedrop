@@ -45,7 +45,7 @@ class Receiver {
   final int? port;
 
   ///[onDownloadStart] will be called when starting to download first time.
-  final void Function(int fileCount)? onDownloadStart;
+  final void Function()? onDownloadStart;
 
   ///[onFileDownloaded] will be called when a file downloaded succesfully.
   final void Function(DbFile file)? onFileDownloaded;
@@ -126,16 +126,16 @@ class Receiver {
                 MediaType.parse(request.headers['content-type']!)
                     .parameters["boundary"]!)
             .bind(request.read());
-        onDownloadStart?.call(await stream.length);
+        onDownloadStart?.call();
         final db = DatabaseManager();
         if (useDb) {
           await db.open();
         }
         await for (var mime in stream) {
-          String filename =
+          final filename =
               HeaderValue.parse(mime.headers['content-disposition']!)
                   .parameters["filename"]!;
-          late File file;
+          File file;
           if ((Platform.isLinux || Platform.isWindows)) {
             //Saving to downloads because these platforms don't require any permission
             final dir = Directory(join(
@@ -152,7 +152,7 @@ class Receiver {
           final totalBytesPer100 = request.contentLength! / 100;
           int downloadedBytesto100 = 0;
           await for (var bytes in mime) {
-            file.writeAsBytesSync(bytes, mode: FileMode.writeOnlyAppend);
+            file.writeAsBytesSync(bytes, mode: FileMode.writeOnly);
 
             downloadedBytesto100 += bytes.length;
             if (downloadedBytesto100 >= totalBytesPer100) {
@@ -190,6 +190,7 @@ class Receiver {
         if (useDb) {
           await db.close();
         }
+        log("Recived file(s) $_files", name: "Receive server");
         return Response.ok(null);
       } catch (_) {
         rethrow;
