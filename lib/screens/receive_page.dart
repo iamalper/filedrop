@@ -1,3 +1,4 @@
+import 'package:weepy/files_riverpod.dart';
 import 'package:weepy/models.dart';
 
 import '../classes/exceptions.dart';
@@ -5,6 +6,7 @@ import '../constants.dart';
 import 'package:flutter/material.dart';
 import '../classes/receiver.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum _UiState { loading, listening, downloading, complete, error }
 
@@ -21,14 +23,14 @@ class ReceivePage extends StatelessWidget {
   }
 }
 
-class ReceivePageInner extends StatefulWidget {
+class ReceivePageInner extends ConsumerStatefulWidget {
   const ReceivePageInner({super.key});
 
   @override
-  State<ReceivePageInner> createState() => _ReceivePageInnerState();
+  ConsumerState<ReceivePageInner> createState() => _ReceivePageInnerState();
 }
 
-class _ReceivePageInnerState extends State<ReceivePageInner>
+class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
     with TickerProviderStateMixin {
   late AnimationController _downloadAnimC;
   late Receiver _receiveClass;
@@ -52,7 +54,8 @@ class _ReceivePageInnerState extends State<ReceivePageInner>
     _receiveClass = Receiver(
       downloadAnimC: _downloadAnimC,
       onDownloadStart: () => uiStatus = _UiState.downloading,
-      onAllFilesDownloaded: (files) {
+      onAllFilesDownloaded: (files) async {
+        await ref.read(filesProvider.notifier).addFiles(files);
         _files = files;
         uiStatus = _UiState.complete;
       },
