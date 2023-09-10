@@ -256,6 +256,7 @@ jobs:
     if: ${{ github.ref_name == 'main' }}
     needs: [release]
     steps:
+    - uses: actions/checkout@v2
     - name: Downloading builds
       uses: actions/download-artifact@v3
       with: 
