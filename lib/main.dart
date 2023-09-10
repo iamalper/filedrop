@@ -16,6 +16,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   final sharedPrefences = await SharedPreferences.getInstance();
   if (kReleaseMode && (Platform.isAndroid || Platform.isIOS)) {
     await Firebase.initializeApp(
