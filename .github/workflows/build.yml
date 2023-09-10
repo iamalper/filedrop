@@ -114,7 +114,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          
+          cache: true
+
       - name: Get flutter_to_debian
         run: dart pub global activate -s git https://github.com/iamalper/flutter_to_debian
     
@@ -149,6 +150,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
+          
       - uses: actions/checkout@v3
       
       - name: Get version.txt
