@@ -64,9 +64,6 @@ class Sender {
       throw OtherDeviceBusyException();
     } else {
       final db = DatabaseManager();
-      if (useDb) {
-        await db.open();
-      }
       for (var file in files) {
         final dbFile = DbFile(
             name: file.name,

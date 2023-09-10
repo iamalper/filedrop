@@ -128,9 +128,6 @@ class Receiver {
             .bind(request.read());
         onDownloadStart?.call();
         final db = DatabaseManager();
-        if (useDb) {
-          await db.open();
-        }
         await for (var mime in stream) {
           final filename =
               HeaderValue.parse(mime.headers['content-disposition']!)

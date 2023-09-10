@@ -4,10 +4,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'screens/receive_page.dart';
 import 'screens/send_page.dart';
-import 'models.dart';
 import 'screens/files_page.dart';
 import 'constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,7 +16,6 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
   final sharedPrefences = await SharedPreferences.getInstance();
   if (kReleaseMode && (Platform.isAndroid || Platform.isIOS)) {
     await Firebase.initializeApp(
@@ -37,12 +36,13 @@ Future<void> main() async {
   final packageInfo = await PackageInfo.fromPlatform();
 
   final isDark = sharedPrefences.getBool("isDark") ?? false;
-  runApp(MaterialAppWidget(
+  runApp(ProviderScope(
+      child: MaterialAppWidget(
     title: "FileDrop",
     isDarkDefault: isDark,
     packageInfo: packageInfo,
     sharedPreferences: sharedPrefences,
-  ));
+  )));
 }
 
 class MaterialAppWidget extends StatelessWidget {
@@ -108,8 +108,6 @@ class MaterialAppWidget extends StatelessWidget {
   }
 }
 
-List<DbFile> allFiles = [];
-
 class _MainWidget extends StatefulWidget {
   final bool isDark;
   final PackageInfo packageInfo;
@@ -154,13 +152,13 @@ class _MainWidgetState extends State<_MainWidget> {
                       key: WidgetKeys.sendButton,
                       onPressed: kIsWeb
                           ? null
-                          : () {
-                              Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              SendPage(isDark: widget.isDark)))
-                                  .then((value) => setState(() {}));
+                          : () async {
+                              await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          SendPage(isDark: widget.isDark)));
+                              setState(() {});
                             },
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -180,13 +178,13 @@ class _MainWidgetState extends State<_MainWidget> {
                       key: WidgetKeys.receiveButton,
                       onPressed: kIsWeb
                           ? null
-                          : () {
-                              Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => ReceivePage(
-                                              isDark: widget.isDark)))
-                                  .then((value) => setState(() {}));
+                          : () async {
+                              await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          ReceivePage(isDark: widget.isDark)));
+                              setState(() {});
                             },
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,

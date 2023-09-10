@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:weepy/classes/exceptions.dart';
+import 'package:weepy/files_riverpod.dart';
 import '../classes/discover.dart' as discover_class; //for prevent collusion
 import '../classes/sender.dart';
 import '../constants.dart';
 import '../models.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum _UiState { scanning, select, sending, complete, error }
 
@@ -20,19 +22,23 @@ class SendPage extends StatelessWidget {
   }
 }
 
-class SendPageInner extends StatefulWidget {
+class SendPageInner extends ConsumerStatefulWidget {
   const SendPageInner({super.key});
   @override
-  State<SendPageInner> createState() => _SendPageInnerState();
+  ConsumerState<SendPageInner> createState() => _SendPageInnerState();
 }
 
-class _SendPageInnerState extends State<SendPageInner>
+class _SendPageInnerState extends ConsumerState<SendPageInner>
     with TickerProviderStateMixin {
   var _uiState = _UiState.scanning;
   late List<Device> _ipList;
   late AnimationController _uploadAnimC;
   late String _errorMessage;
-  set uiState(_UiState uiState) => setState(() => _uiState = uiState);
+  set uiState(_UiState uiState) {
+    if (mounted) {
+      setState(() => _uiState = uiState);
+    }
+  }
 
   @override
   void initState() {
@@ -126,6 +132,14 @@ class _SendPageInnerState extends State<SendPageInner>
       uiState = _UiState.sending;
       try {
         await Sender.send(device, file, uploadAnimC: uploadAnimC);
+        final filesNotifier = ref.read(filesProvider.notifier);
+        await filesNotifier.addFiles(file
+            .map((e) => DbFile(
+                name: e.name,
+                path: e.path!,
+                time: DateTime.now(),
+                fileStatus: DbFileStatus.upload))
+            .toList());
         uiState = _UiState.complete;
       } on FileDropException catch (e) {
         if (context.mounted) {

@@ -4,19 +4,14 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models.dart';
 
 class DatabaseManager {
-  late Database _db;
-
-  ///Open the database and creates tables if didn't created before.
-  ///
-  ///Is is safe to reopen database after [close] called.
-  ///
-  ///It didn't enough tested for desktop platforms.
-  Future<void> open() async {
-    if (Platform.isLinux || Platform.isWindows) {
+  bool _initalised = false;
+  Future<Database> get _db {
+    if (!_initalised && (Platform.isLinux || Platform.isWindows)) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfiNoIsolate;
     }
-    _db = await openDatabase(
+    _initalised = true;
+    return openDatabase(
       "files.db",
       version: 1,
       onCreate: (db, version) async {
@@ -29,16 +24,15 @@ class DatabaseManager {
   }
 
   ///Insert a uploaded or downloaded file information
-  ///
-  ///Make sure [open] is called and [close] isn't called.
   Future<void> insert(DbFile file) async {
+    final db = await _db;
     switch (file.fileStatus) {
       case DbFileStatus.upload:
-        await _db.insert("uploaded",
+        await db.insert("uploaded",
             {"name": file.name, "time": file.timeEpoch, "path": file.path});
         break;
       case DbFileStatus.download:
-        await _db.insert("downloaded",
+        await db.insert("downloaded",
             {"name": file.name, "time": file.timeEpoch, "path": file.path});
         break;
     }
@@ -47,26 +41,29 @@ class DatabaseManager {
   ///Delete all uploaded/downloaded file entries from database.
   ///
   ///Files will not be deleted. Only their infos will be deleted.
-  ///
-  ///Make sure [open] is called and [close] isn't called.
-  Future<void> clear() =>
-      Future.wait([_db.delete("uploaded"), _db.delete("downloaded")]);
+  Future<void> clear() async {
+    final db = await _db;
+    await Future.wait([db.delete("uploaded"), db.delete("downloaded")]);
+  }
 
   ///Close the database.
   ///
-  ///If database is not opened, lateinit exception throws.
-  Future<void> close() => _db.close();
+  ///Another interaction with database will reopen the database.
+  Future<void> close() async {
+    final db = await _db;
+    await db.close();
+    _initalised = false;
+  }
 
-  ///Get all donwloaded/uploaded file information as list.
-  ///
-  ///Make sure [open] is called and [close] isn't called.
+  ///Get all downloaded/uploaded file information as list.
   Future<List<DbFile>> get files async {
+    final db = await _db;
     final uploadedMaps =
-        await _db.query("uploaded", columns: ["name", "type", "time", "path"]);
+        await db.query("uploaded", columns: ["name", "type", "time", "path"]);
     final uploadedFiles =
         uploadedMaps.map((e) => DbFile.uploadedFromMap(e)).toList();
-    final downloadedMaps = await _db
-        .query("downloaded", columns: ["name", "type", "time", "path"]);
+    final downloadedMaps =
+        await db.query("downloaded", columns: ["name", "type", "time", "path"]);
     final downloadedFiles =
         downloadedMaps.map((e) => DbFile.downloadedFromMap(e)).toList();
     List<DbFile> files = [];
