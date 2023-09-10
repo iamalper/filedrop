@@ -111,6 +111,10 @@ jobs:
       - name: Update version in FileDrop.desktop
         run: sed -i 's/1.0.0/${{ steps.version.outputs.content }}/g' debian/gui/FileDrop.desktop
 
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          
       - name: Get flutter_to_debian
         run: dart pub global activate -s git https://github.com/iamalper/flutter_to_debian
     
