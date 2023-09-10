@@ -218,7 +218,7 @@ jobs:
         with:
           automatic_release_tag: "v${{ steps.version.outputs.content }}"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: ${{ !env.isRelease }}
+          prerelease: ${{ env.isRelease == 'false' }}
           files: | 
             flutter-apk/app-release.apk
             bundle/release/app-release.aab
