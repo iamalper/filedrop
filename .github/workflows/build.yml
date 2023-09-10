@@ -11,6 +11,7 @@ on:
       - README.md
       - GitVersion.yml
       - .vscode/**
+      - .github/**
 
 jobs:
   build:
@@ -134,7 +135,7 @@ jobs:
         with:
           automatic_release_tag: "v${{ steps.version.outputs.content }}"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: ${{ env.isRelease }}
+          prerelease: ${{ !env.isRelease }}
           files: |
             app/outputs/flutter-apk/app-release.apk
             app/outputs/bundle/release/app-release.aab
