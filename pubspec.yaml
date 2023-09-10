@@ -37,6 +37,7 @@ dependencies:
   dio: ^5.3.2
   http: ^1.1.0
   flutter_riverpod: ^2.4.0
+  cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:
@@ -46,9 +47,16 @@ dev_dependencies:
   path_provider_platform_interface: ^2.1.0
   custom_lint: ^0.5.3
   riverpod_lint: ^2.0.4
+  msix: ^3.16.1
 
 flutter:
   uses-material-design: true
   generate: true
   assets:
     - "assets/lottie/"
+
+msix_config:
+  display_name: FileDrop
+  msix_version: 1.0.0.0
+  app_installer:
+    publish_folder_path: c:\path\to\myPublishFolder
