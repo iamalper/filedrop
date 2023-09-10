@@ -270,4 +270,3 @@ jobs:
         releaseFiles: bundle/release/app-release.aab
         track: beta
         whatsNewDirectory: whatsnew
-        changesNotSentForReview: true
