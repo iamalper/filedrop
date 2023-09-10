@@ -3,8 +3,14 @@ name: BuildTask
 on:
   workflow_dispatch:
   push:
-    tags:
-      - v*
+    paths-ignore:
+      - docs/**
+      - screenshots**
+      - test/**
+      - LICENSE
+      - README.md
+      - GitVersion.yml
+      - .vscode/**
 
 jobs:
   build:
@@ -80,8 +86,7 @@ jobs:
 
       - name: Run flutter_to_debian
         run: flutter_to_debian
-        
-      # Runs a set of commands using the runners shell
+
       - name: Start appbundle build
         run: flutter build appbundle
         
@@ -98,6 +103,8 @@ jobs:
             build/linux/x64/release/debian/*.deb
 
   publish:
+    env:
+      isRelease: ${{ github.ref_name == 'release' }}
     runs-on: ubuntu-latest
     needs: [build, version]
     steps:
@@ -127,13 +134,15 @@ jobs:
         with:
           automatic_release_tag: "v${{ steps.version.outputs.content }}"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: true
+          prerelease: ${{ env.isRelease }}
           files: |
             app/outputs/flutter-apk/app-release.apk
             app/outputs/bundle/release/app-release.aab
             linux/x64/release/debian/*.deb
 
   version:
+    env:
+      isRelease: ${{ github.ref_name == 'release' }}
     name: Create version number
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
