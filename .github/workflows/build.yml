@@ -151,7 +151,7 @@ jobs:
         with:
           channel: 'stable'
           cache: true
-          
+
       - uses: actions/checkout@v3
       
       - name: Get version.txt
@@ -220,9 +220,9 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: ${{ !env.isRelease }}
           files: | 
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
-            build/linux/x64/release/debian/*.deb
+            flutter-apk/app-release.apk
+            bundle/release/app-release.aab
+            *.deb
 
   version:
     env:
