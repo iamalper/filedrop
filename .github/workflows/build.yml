@@ -225,8 +225,6 @@ jobs:
             *.deb
 
   version:
-    env:
-      isRelease: ${{ github.ref_name == 'main' }}
     name: Create version number
     runs-on: ubuntu-latest
 
