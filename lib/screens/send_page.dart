@@ -31,7 +31,7 @@ class SendPageInner extends ConsumerStatefulWidget {
 class _SendPageInnerState extends ConsumerState<SendPageInner>
     with TickerProviderStateMixin {
   var _uiState = _UiState.scanning;
-  late List<Device> _ipList;
+  List<Device> _ipList = [];
   late AnimationController _uploadAnimC;
   late String _errorMessage;
   set uiState(_UiState uiState) {
@@ -52,7 +52,9 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
 
   Future<void> _discover() async {
     try {
-      _ipList = await discover_class.Discover.discover();
+      while (_ipList.isEmpty) {
+        _ipList = await discover_class.Discover.discover();
+      }
       uiState = _UiState.select;
     } on FileDropException catch (e) {
       if (context.mounted) {
@@ -103,6 +105,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
 
       case _UiState.select: //network scanned
         if (_ipList.isEmpty) {
+          //Obselete, discovery loops until a device found.
           return Text(
             AppLocalizations.of(context)!.noReceiverDeviceFound,
             textAlign: TextAlign.center,
