@@ -9,13 +9,14 @@ abstract class FileDropException implements Exception {
   String getErrorMessage(AppLocalizations appLocalizations);
 }
 
-///Throw when a downloaded file couldn't moved from temp folder to storage
-///
-///Use [getErrorMessage] for localised error message.
-///
-///Usually throws when device has no enough storage space.
 class FileCouldntSavedException implements FileDropException {
   final DbFile file;
+
+  ///Throw when a downloaded file couldn't moved from temp folder to storage
+  ///
+  ///Use [getErrorMessage] for localised error message.
+  ///
+  ///Usually throws when device has no enough storage space.
   FileCouldntSavedException(this.file);
 
   @override
@@ -23,39 +24,44 @@ class FileCouldntSavedException implements FileDropException {
       appLocalizations.fileCoulntSaved;
 }
 
-///Throws when can't get its own ip adress.
-///
-///Use [getErrorMessage] for localised error message.
-///
-///Usually throws when don't connected to a network.
 class IpException implements FileDropException {
+  ///Throws when can't get its own ip adress.
+  ///
+  ///Use [getErrorMessage] for localised error message.
+  ///
+  ///Usually throws when don't connected to a network.
+
+  IpException();
   @override
   String getErrorMessage(AppLocalizations appLocalizations) =>
       appLocalizations.notConnectedToNetwork;
 }
 
-///Throws when an error happened during file send or receive.
-///
-///Use [getErrorMessage] for localised error message.
 class ConnectionLostException implements FileDropException {
+  ///Throws when an error happened during file send or receive.
+  ///
+  ///Use [getErrorMessage] for localised error message.
+  ConnectionLostException();
   @override
   String getErrorMessage(AppLocalizations appLocalizations) =>
       appLocalizations.connectionLost;
 }
 
-///Throws when storage permission request rejected by user.
-///
-///Use [getErrorMessage] for localised error message.
 class NoStoragePermissionException implements FileDropException {
+  ///Throws when storage permission request rejected by user.
+  ///
+  ///Use [getErrorMessage] for localised error message.
+  NoStoragePermissionException();
   @override
   String getErrorMessage(AppLocalizations appLocalizations) =>
       appLocalizations.noStoragePermission;
 }
 
-///Throws when user tired to send file but other device is busy.
-///
-///Use [getErrorMessage] for localised error message.
 class OtherDeviceBusyException implements FileDropException {
+  ///Throws when user tired to send file but other device is busy.
+  ///
+  ///Use [getErrorMessage] for localised error message.
+  OtherDeviceBusyException();
   @override
   String getErrorMessage(AppLocalizations appLocalizations) =>
       appLocalizations.otherDeviceBusy;
