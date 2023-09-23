@@ -146,16 +146,10 @@ class Receiver {
             file = File(join((await _tempDir).path, filename));
             file = _generateFileName(file, await _tempDir);
           }
-          final totalBytesPer100 = request.contentLength! / 100;
-          int downloadedBytesto100 = 0;
+          final totalLengh = request.contentLength!;
           await for (var bytes in mime) {
             file.writeAsBytesSync(bytes, mode: FileMode.writeOnly);
-
-            downloadedBytesto100 += bytes.length;
-            if (downloadedBytesto100 >= totalBytesPer100) {
-              downloadAnimC?.value += 0.01;
-              downloadedBytesto100 - totalBytesPer100;
-            }
+            downloadAnimC?.value += bytes.length / totalLengh;
           }
           final dbFile = DbFile(
               name: filename,
