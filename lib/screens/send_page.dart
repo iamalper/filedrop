@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/files_riverpod.dart';
 import '../classes/discover.dart' as discover_class; //for prevent collusion
@@ -34,6 +35,8 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
   List<Device> _ipList = [];
   late AnimationController _uploadAnimC;
   late String _errorMessage;
+  late LottieBuilder animation;
+
   set uiState(_UiState uiState) {
     if (mounted) {
       setState(() => _uiState = uiState);
@@ -46,6 +49,8 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
       ..addListener(() {
         setState(() {});
       });
+    animation = Assets.upload(_uploadAnimC,
+        (composition) => _uploadAnimC.duration = composition.duration);
     super.initState();
     _discover();
   }
@@ -78,10 +83,11 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
           padding: const EdgeInsets.all(8.0),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(AppLocalizations.of(context)!.fileUploading),
-            LinearProgressIndicator(
+            animation,
+            /*LinearProgressIndicator(
               value: _uploadAnimC.value,
               minHeight: 10,
-            ),
+            ),*/
           ]),
         );
       case _UiState.complete:
