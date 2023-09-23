@@ -39,5 +39,5 @@ Also you can help with improving translations or translating another languages w
 - [ ] Add setting for change to system theme
 - [ ] Add logs for crash reporting
 - [ ] Find a way to build for windows in actions script
-- [ ] Improve action script for publishing to google play
+- [x] Improve action script for publishing to google play
 - [ ] Show builds in github pages instead of just privacy policy text
