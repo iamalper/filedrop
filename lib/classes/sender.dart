@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/animation.dart';
 import 'package:dio/dio.dart';
 import 'package:weepy/classes/exceptions.dart';
+import 'package:weepy/constants.dart';
 import '../models.dart';
 import 'package:file_picker/file_picker.dart';
 import 'database.dart';
+import 'package:num_remap/num_remap.dart';
 
 ///Class for all Sending jobs.
 ///
@@ -39,7 +41,7 @@ class Sender {
           .map((e) => MultipartFile.fromFileSync(e.path!, filename: e.name))
           .toList(),
     });
-    int uploadedPer100 = 0;
+    uploadAnimC?.animateTo(Assets.uploadAnimStart);
     final Response<void> response;
     try {
       response = await _dio.post<void>(device.uri.toString(),
@@ -49,13 +51,15 @@ class Sender {
               Headers.contentLengthHeader: formData.length,
             },
           ), onSendProgress: ((count, total) {
-        final totalPer100 = total / 100;
-        uploadedPer100 += count;
-        if (uploadedPer100 >= totalPer100) {
-          uploadAnimC?.value += 0.01;
-          uploadedPer100 - totalPer100;
-        }
+        final newValue = count / total;
+        assert(newValue <= 1.0 && newValue >= 0.0);
+        final mappedValue = newValue.remapAndClamp(
+            0.0, 1.0, Assets.uploadAnimStart, Assets.uploadAnimEnd);
+        assert(mappedValue <= Assets.uploadAnimEnd &&
+            mappedValue >= Assets.uploadAnimStart);
+        uploadAnimC?.animateTo(mappedValue.toDouble());
       }));
+      uploadAnimC?.animateTo(1.0);
     } catch (_) {
       throw ConnectionLostException();
     }

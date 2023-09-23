@@ -45,12 +45,16 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
 
   @override
   void initState() {
-    _uploadAnimC = AnimationController(vsync: this)
+    _uploadAnimC = AnimationController(
+        vsync: this,
+        debugLabel: "Upload Animation Controller",
+        duration: const Duration(seconds: 1))
       ..addListener(() {
         setState(() {});
       });
-    animation = Assets.upload(_uploadAnimC,
-        (composition) => _uploadAnimC.duration = composition.duration);
+    animation = Assets.upload(_uploadAnimC, (composition) {
+      _uploadAnimC.duration = composition.duration;
+    });
     super.initState();
     _discover();
   }

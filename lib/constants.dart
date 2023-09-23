@@ -77,4 +77,6 @@ class Assets {
           void Function(LottieComposition) onLoaded) =>
       Lottie.asset("assets/lottie/upload-animation.json",
           controller: animationController, onLoaded: onLoaded);
+  static const uploadAnimStart = 0.16;
+  static const uploadAnimEnd = 0.63;
 }

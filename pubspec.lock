@@ -501,6 +501,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  num_remap:
+    dependency: "direct main"
+    description:
+      name: num_remap
+      sha256: "65da281ae014640e8c09a797d3c6a32902204168785f061f75ced6258caeacd7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   open_filex:
     dependency: "direct main"
     description:
