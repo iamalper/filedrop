@@ -92,11 +92,11 @@ void main() {
                 name: "testt",
                 size: 1000000000000000000,
                 path: platformFiles[1].path,
-                readStream: Stream.periodic(const Duration(milliseconds: 100),
+                readStream: Stream.periodic(const Duration(milliseconds: 10),
                     (_) => List.filled(1024, 0)))
           ],
           useDb: false);
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(seconds: 15));
       expect(throwedError, isNotNull);
     });
     tearDownAll(() {

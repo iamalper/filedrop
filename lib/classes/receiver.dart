@@ -53,6 +53,12 @@ class Receiver {
   ///[onAllFilesDownloaded] will be called when all files succesfully downloaded.
   final void Function(List<DbFile> files)? onAllFilesDownloaded;
 
+  ///[onDownloadError] will be called when error happened while saving file.
+  ///
+  ///When [onDownloadError] called, no other callback will be called,
+  ///no exception thrown and server will wait new connection.
+  ///
+  ///See [FileDropException]
   final void Function(FileDropException error)? onDownloadError;
 
   ///Listen and receive files from other devices.
@@ -151,7 +157,7 @@ class Receiver {
             file = _generateFileName(file, await _tempDir);
           }
           final totalLengh = request.contentLength!;
-          await for (var bytes in mime) {
+          await for (var bytes in mime.timeout(const Duration(seconds: 10))) {
             file.writeAsBytesSync(bytes, mode: FileMode.writeOnly);
             downloadAnimC?.value += bytes.length / totalLengh;
           }
@@ -190,6 +196,7 @@ class Receiver {
       } catch (_) {
         log("Download error", name: "Receiver");
         onDownloadError?.call(ConnectionLostException());
+        return Response.badRequest();
       } finally {
         //File downloaded successfully or failed. Resetting progess for both cases.
         downloadAnimC?.value = 1;
@@ -197,10 +204,11 @@ class Receiver {
         //Open for new connections
         _isBusy = false;
       }
+    } else {
+      //Request method neither POST or GET
+      log("Invalid request recieved", name: "Receive server");
+      return Response.badRequest();
     }
-    //Request method neither POST or GET
-    log("Invalid request recieved", name: "Receive server");
-    return Response.badRequest();
   }
 
   ///Ensures a file with same name not exists.
