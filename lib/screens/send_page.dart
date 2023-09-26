@@ -89,10 +89,6 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(AppLocalizations.of(context)!.fileUploading),
             animation,
-            /*LinearProgressIndicator(
-              value: _uploadAnimC.value,
-              minHeight: 10,
-            ),*/
           ]),
         );
       case _UiState.complete:
