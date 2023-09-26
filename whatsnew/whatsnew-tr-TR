@@ -1,1 +1,3 @@
-Gönderilen/alınan dosyaların görüntülenmemesi sorunu düzeltildi
+Gönderme/alma işleminin kullanıcı iptal etse bile durmaması sorunu düzeltildi.
+Gönderme/alma yarıda kesilmesi durumu için hata mesajı eklendi.
+Yeni gönderme animasyonu eklendi.

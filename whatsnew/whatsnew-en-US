@@ -1,1 +1,3 @@
-Fixed received/sent files don't shown
+Fixed send/receive never stop even user cancelled.
+Add error messages if connection lost while send/receive.
+Add new upload animation
