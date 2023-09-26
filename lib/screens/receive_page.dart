@@ -52,14 +52,17 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
         setState(() {});
       });
     _receiveClass = Receiver(
-      downloadAnimC: _downloadAnimC,
-      onDownloadStart: () => uiStatus = _UiState.downloading,
-      onAllFilesDownloaded: (files) async {
-        await ref.read(filesProvider.notifier).addFiles(files);
-        _files = files;
-        uiStatus = _UiState.complete;
-      },
-    );
+        downloadAnimC: _downloadAnimC,
+        onDownloadStart: () => uiStatus = _UiState.downloading,
+        onAllFilesDownloaded: (files) async {
+          await ref.read(filesProvider.notifier).addFiles(files);
+          _files = files;
+          uiStatus = _UiState.complete;
+        },
+        onDownloadError: (e) {
+          errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
+          uiStatus = _UiState.error;
+        });
     _receive();
     super.initState();
   }
