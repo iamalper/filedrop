@@ -73,4 +73,10 @@ class Appbars {
 class Assets {
   static final hotspot = Lottie.asset("assets/lottie/blue-hotspot.json");
   static final wifi = Lottie.asset("assets/lottie/scanning-for-wifi.json");
+  static LottieBuilder upload(AnimationController animationController,
+          void Function(LottieComposition) onLoaded) =>
+      Lottie.asset("assets/lottie/upload-animation.json",
+          controller: animationController, onLoaded: onLoaded);
+  static const uploadAnimStart = 0.16;
+  static const uploadAnimEnd = 0.63;
 }

@@ -9,7 +9,7 @@ import '../models.dart';
 class Discover {
   ///Search local network for devices which is listening for match.
   ///
-  ///Throws `ip error` if can't get own ip adress or didn't connected to a local network.
+  ///Throws [IpException] if can't get own ip adress or didn't connected to a local network.
   ///Can't discover the devices currently downloading files from another device.
   ///
   ///Returns the list of available devices.

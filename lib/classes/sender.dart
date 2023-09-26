@@ -1,16 +1,20 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter/animation.dart';
 import 'package:dio/dio.dart';
 import 'package:weepy/classes/exceptions.dart';
+import 'package:weepy/constants.dart';
 import '../models.dart';
 import 'package:file_picker/file_picker.dart';
 import 'database.dart';
+import 'package:num_remap/num_remap.dart';
 
 ///Class for all Sending jobs.
 ///
 ///Available methods are [filePick] and [send]
 class Sender {
   static final _dio = Dio();
+  static final _senderCancelToken = CancelToken();
 
   ///Pick files which are about to send.
   ///
@@ -20,6 +24,11 @@ class Sender {
         .pickFiles(withReadStream: true, allowMultiple: true);
 
     return result?.files;
+  }
+
+  static void cancel() {
+    log("Request cancelled", name: "Sender");
+    _senderCancelToken.cancel();
   }
 
   ///Sends file(s) to a device
@@ -36,30 +45,37 @@ class Sender {
       {AnimationController? uploadAnimC, bool useDb = true}) async {
     final formData = FormData.fromMap({
       'files': files
-          .map((e) => MultipartFile.fromFileSync(e.path!, filename: e.name))
+          .map((e) => MultipartFile.fromStream(() => e.readStream!, e.size,
+              filename: e.name))
           .toList(),
     });
-    int uploadedPer100 = 0;
+    uploadAnimC?.animateTo(Assets.uploadAnimStart);
     final Response<void> response;
     try {
       response = await _dio.post<void>(device.uri.toString(),
           data: formData,
+          cancelToken: _senderCancelToken,
           options: Options(
             headers: {
               Headers.contentLengthHeader: formData.length,
             },
           ), onSendProgress: ((count, total) {
-        final totalPer100 = total / 100;
-        uploadedPer100 += count;
-        if (uploadedPer100 >= totalPer100) {
-          uploadAnimC?.value += 0.01;
-          uploadedPer100 - totalPer100;
-        }
+        final newValue = count / total;
+        assert(newValue <= 1.0 && newValue >= 0.0);
+        final mappedValue = newValue.remapAndClamp(
+            0.0, 1.0, Assets.uploadAnimStart, Assets.uploadAnimEnd);
+        assert(mappedValue <= Assets.uploadAnimEnd &&
+            mappedValue >= Assets.uploadAnimStart);
+        uploadAnimC?.animateTo(mappedValue.toDouble());
       }));
-    } catch (_) {
-      throw ConnectionLostException();
+      uploadAnimC?.animateTo(1.0);
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        return;
+      } else {
+        throw ConnectionLostException();
+      }
     }
-
     if (response.statusCode != 200) {
       throw OtherDeviceBusyException();
     } else {

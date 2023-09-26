@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/files_riverpod.dart';
 import '../classes/discover.dart' as discover_class; //for prevent collusion
@@ -31,9 +32,11 @@ class SendPageInner extends ConsumerStatefulWidget {
 class _SendPageInnerState extends ConsumerState<SendPageInner>
     with TickerProviderStateMixin {
   var _uiState = _UiState.scanning;
-  late List<Device> _ipList;
+  List<Device> _ipList = [];
   late AnimationController _uploadAnimC;
   late String _errorMessage;
+  late LottieBuilder animation;
+
   set uiState(_UiState uiState) {
     if (mounted) {
       setState(() => _uiState = uiState);
@@ -42,17 +45,25 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
 
   @override
   void initState() {
-    _uploadAnimC = AnimationController(vsync: this)
+    _uploadAnimC = AnimationController(
+        vsync: this,
+        debugLabel: "Upload Animation Controller",
+        duration: const Duration(seconds: 1))
       ..addListener(() {
         setState(() {});
       });
+    animation = Assets.upload(_uploadAnimC, (composition) {
+      _uploadAnimC.duration = composition.duration;
+    });
     super.initState();
     _discover();
   }
 
   Future<void> _discover() async {
     try {
-      _ipList = await discover_class.Discover.discover();
+      while (_ipList.isEmpty) {
+        _ipList = await discover_class.Discover.discover();
+      }
       uiState = _UiState.select;
     } on FileDropException catch (e) {
       if (context.mounted) {
@@ -65,6 +76,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
   @override
   void dispose() {
     _uploadAnimC.dispose();
+    Sender.cancel();
     super.dispose();
   }
 
@@ -76,10 +88,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
           padding: const EdgeInsets.all(8.0),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(AppLocalizations.of(context)!.fileUploading),
-            LinearProgressIndicator(
-              value: _uploadAnimC.value,
-              minHeight: 10,
-            ),
+            animation,
           ]),
         );
       case _UiState.complete:
@@ -103,6 +112,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
 
       case _UiState.select: //network scanned
         if (_ipList.isEmpty) {
+          //Obselete, discovery loops until a device found.
           return Text(
             AppLocalizations.of(context)!.noReceiverDeviceFound,
             textAlign: TextAlign.center,

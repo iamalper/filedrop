@@ -53,6 +53,14 @@ class Receiver {
   ///[onAllFilesDownloaded] will be called when all files succesfully downloaded.
   final void Function(List<DbFile> files)? onAllFilesDownloaded;
 
+  ///[onDownloadError] will be called when error happened while saving file.
+  ///
+  ///When [onDownloadError] called, no other callback will be called,
+  ///no exception thrown and server will wait new connection.
+  ///
+  ///See [FileDropException]
+  final void Function(FileDropException error)? onDownloadError;
+
   ///Listen and receive files from other devices.
   ///
   ///Set [downloadAnimC], [onDownloadStart], [onFileDownloaded], [onAllFilesDownloaded] for animating download progess.
@@ -65,7 +73,8 @@ class Receiver {
       this.port,
       this.onDownloadStart,
       this.onFileDownloaded,
-      this.onAllFilesDownloaded});
+      this.onAllFilesDownloaded,
+      this.onDownloadError});
 
   ///Starts listening for discovery and recieving file(s).
   ///Handles one connection at once. If another device tires to match,
@@ -96,7 +105,7 @@ class Receiver {
         if (port < Constants.maxPort) {
           continue;
         } else {
-          rethrow;
+          onDownloadError?.call(ConnectionLostException());
         }
       }
     }
@@ -122,10 +131,11 @@ class Receiver {
       log("Reciving file...", name: "Receive server");
       try {
         _isBusy = true;
+        final byteStream = request.read();
         final stream = MimeMultipartTransformer(
                 MediaType.parse(request.headers['content-type']!)
                     .parameters["boundary"]!)
-            .bind(request.read());
+            .bind(byteStream);
         onDownloadStart?.call();
         final db = DatabaseManager();
         await for (var mime in stream) {
@@ -146,16 +156,10 @@ class Receiver {
             file = File(join((await _tempDir).path, filename));
             file = _generateFileName(file, await _tempDir);
           }
-          final totalBytesPer100 = request.contentLength! / 100;
-          int downloadedBytesto100 = 0;
-          await for (var bytes in mime) {
+          final totalLengh = request.contentLength!;
+          await for (var bytes in mime.timeout(const Duration(seconds: 10))) {
             file.writeAsBytesSync(bytes, mode: FileMode.writeOnly);
-
-            downloadedBytesto100 += bytes.length;
-            if (downloadedBytesto100 >= totalBytesPer100) {
-              downloadAnimC?.value += 0.01;
-              downloadedBytesto100 - totalBytesPer100;
-            }
+            downloadAnimC?.value += bytes.length / totalLengh;
           }
           final dbFile = DbFile(
               name: filename,
@@ -190,7 +194,9 @@ class Receiver {
         log("Recived file(s) $_files", name: "Receive server");
         return Response.ok(null);
       } catch (_) {
-        rethrow;
+        log("Download error", name: "Receiver");
+        onDownloadError?.call(ConnectionLostException());
+        return Response.badRequest();
       } finally {
         //File downloaded successfully or failed. Resetting progess for both cases.
         downloadAnimC?.value = 1;
@@ -198,10 +204,11 @@ class Receiver {
         //Open for new connections
         _isBusy = false;
       }
+    } else {
+      //Request method neither POST or GET
+      log("Invalid request recieved", name: "Receive server");
+      return Response.badRequest();
     }
-    //Request method neither POST or GET
-    log("Invalid request recieved", name: "Receive server");
-    return Response.badRequest();
   }
 
   ///Ensures a file with same name not exists.
