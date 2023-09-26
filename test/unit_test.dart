@@ -12,16 +12,11 @@ import 'package:weepy/models.dart';
 import 'fake_path_provider.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-  var sendingFiles = <File>[];
-  var downloadedFiles = <DbFile>[];
-  PathProviderPlatform.instance = FakePathProviderPlatform();
   HttpOverrides.global = _MyHttpOverrides();
-  final recieve = Receiver(
-      saveToTemp: true,
-      useDb: false,
-      onAllFilesDownloaded: (files) => downloadedFiles = files);
+  PathProviderPlatform.instance = FakePathProviderPlatform();
 
+  var sendingFiles = <File>[];
+  var platformFiles = <PlatformFile>[];
   setUpAll(() async {
     final tempDir = (await getTemporaryDirectory()).path;
     sendingFiles = [
@@ -31,54 +26,84 @@ void main() {
     for (var gidenDosya in sendingFiles) {
       gidenDosya.writeAsStringSync("deneme gövdesi", mode: FileMode.writeOnly);
     }
-  });
-
-  test('Discover, send and receive files', () async {
-    final code = await recieve.listen();
-    final allDevices = await Discover.discover();
-    final device = allDevices.where((device) => device.code == code);
-    expect(device, hasLength(1), reason: "Expected to discover itself");
-    final pFiles = List.generate(
+    platformFiles = List.generate(
         sendingFiles.length,
         (index) => PlatformFile(
             readStream: sendingFiles[index].openRead(),
             size: sendingFiles[index].lengthSync(),
             name: path.basename(sendingFiles[index].path),
             path: sendingFiles[index].path));
-    await Sender.send(device.single, pFiles, useDb: false);
-    for (var i = 0; i < sendingFiles.length; i++) {
-      final gidenDosya = sendingFiles[i];
-      final gelenDosya = File(downloadedFiles[i].path);
-      expect(gidenDosya.readAsBytesSync(), gelenDosya.readAsBytesSync(),
-          reason: "All sent files expected to has same content as originals");
-    }
+  });
+  group('IO tests', () {
+    var downloadedFiles = <DbFile>[];
+    final recieve = Receiver(
+        saveToTemp: true,
+        useDb: false,
+        onAllFilesDownloaded: (files) => downloadedFiles = files);
+
+    test('Discover, send and receive files', () async {
+      final code = await recieve.listen();
+      final allDevices = await Discover.discover();
+      final devices = allDevices.where((device) => device.code == code);
+      expect(devices, hasLength(1), reason: "Expected to discover itself");
+      await Sender.send(devices.single, platformFiles, useDb: false);
+      for (var i = 0; i < sendingFiles.length; i++) {
+        final gidenDosya = sendingFiles[i];
+        final gelenDosya = File(downloadedFiles[i].path);
+        expect(gidenDosya.readAsBytesSync(), gelenDosya.readAsBytesSync(),
+            reason: "All sent files expected to has same content as originals");
+      }
+    });
+
+    tearDown(() {
+      for (var file in downloadedFiles) {
+        File(file.path).deleteSync();
+      }
+      downloadedFiles = [];
+    });
+    tearDownAll(() async {
+      await recieve.stopListening();
+    });
   });
 
-  test("Error handling", () async {
-    expect(
-        Sender.send(
-            Device(adress: await Discover.getMyIp(), code: 1000, port: 2323),
-            [
-              PlatformFile(
-                  readStream: sendingFiles[1].openRead(),
-                  size: sendingFiles[1].lengthSync(),
-                  name: path.basename(sendingFiles[1].path),
-                  path: sendingFiles[1].path),
-            ],
-            useDb: false),
-        throwsA(isA<FileDropException>()));
-  }, skip: "Dont work for now");
-  tearDown(() {
-    for (var file in downloadedFiles) {
-      File(file.path).deleteSync();
-    }
-    downloadedFiles = [];
-  });
-  tearDownAll(() async {
-    await recieve.stopListening();
-    for (var sentFile in sendingFiles) {
-      sentFile.deleteSync();
-    }
+  group('Error handling', () {
+    test(
+      "Handle no_receiver error",
+      () async {
+        final sendFuture = Sender.send(
+            Device(adress: await Discover.getMyIp(), code: 1000, port: 2326),
+            platformFiles,
+            useDb: false);
+        expect(sendFuture, throwsA(isA<FileDropException>()));
+      },
+    );
+    test("Handle connection lost while reciving", () async {
+      FileDropException? throwedError;
+      final code = await Receiver(
+              onDownloadError: (error) => throwedError = error, useDb: false)
+          .listen();
+      final devices = await Discover.discover();
+      expect(devices.where((device) => device.code == code), hasLength(1));
+      Future.delayed(const Duration(milliseconds: 500), Sender.cancel);
+      await Sender.send(
+          devices.single,
+          [
+            PlatformFile(
+                name: "testt",
+                size: 1000000000000000000,
+                path: platformFiles[1].path,
+                readStream: Stream.periodic(const Duration(milliseconds: 100),
+                    (_) => List.filled(1024, 0)))
+          ],
+          useDb: false);
+      await Future.delayed(const Duration(milliseconds: 500));
+      expect(throwedError, isNotNull);
+    });
+    tearDownAll(() {
+      for (var sentFile in sendingFiles) {
+        sentFile.deleteSync();
+      }
+    });
   });
 }
 

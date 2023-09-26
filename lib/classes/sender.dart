@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter/animation.dart';
 import 'package:dio/dio.dart';
 import 'package:weepy/classes/exceptions.dart';
@@ -13,6 +14,7 @@ import 'package:num_remap/num_remap.dart';
 ///Available methods are [filePick] and [send]
 class Sender {
   static final _dio = Dio();
+  static final _senderCancelToken = CancelToken();
 
   ///Pick files which are about to send.
   ///
@@ -22,6 +24,11 @@ class Sender {
         .pickFiles(withReadStream: true, allowMultiple: true);
 
     return result?.files;
+  }
+
+  static void cancel() {
+    log("Request cancelled", name: "Sender");
+    _senderCancelToken.cancel();
   }
 
   ///Sends file(s) to a device
@@ -38,7 +45,8 @@ class Sender {
       {AnimationController? uploadAnimC, bool useDb = true}) async {
     final formData = FormData.fromMap({
       'files': files
-          .map((e) => MultipartFile.fromFileSync(e.path!, filename: e.name))
+          .map((e) => MultipartFile.fromStream(() => e.readStream!, e.size,
+              filename: e.name))
           .toList(),
     });
     uploadAnimC?.animateTo(Assets.uploadAnimStart);
@@ -46,6 +54,7 @@ class Sender {
     try {
       response = await _dio.post<void>(device.uri.toString(),
           data: formData,
+          cancelToken: _senderCancelToken,
           options: Options(
             headers: {
               Headers.contentLengthHeader: formData.length,
@@ -60,10 +69,13 @@ class Sender {
         uploadAnimC?.animateTo(mappedValue.toDouble());
       }));
       uploadAnimC?.animateTo(1.0);
-    } catch (_) {
-      throw ConnectionLostException();
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        return;
+      } else {
+        throw ConnectionLostException();
+      }
     }
-
     if (response.statusCode != 200) {
       throw OtherDeviceBusyException();
     } else {

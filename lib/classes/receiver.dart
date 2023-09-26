@@ -53,6 +53,8 @@ class Receiver {
   ///[onAllFilesDownloaded] will be called when all files succesfully downloaded.
   final void Function(List<DbFile> files)? onAllFilesDownloaded;
 
+  final void Function(FileDropException error)? onDownloadError;
+
   ///Listen and receive files from other devices.
   ///
   ///Set [downloadAnimC], [onDownloadStart], [onFileDownloaded], [onAllFilesDownloaded] for animating download progess.
@@ -65,7 +67,8 @@ class Receiver {
       this.port,
       this.onDownloadStart,
       this.onFileDownloaded,
-      this.onAllFilesDownloaded});
+      this.onAllFilesDownloaded,
+      this.onDownloadError});
 
   ///Starts listening for discovery and recieving file(s).
   ///Handles one connection at once. If another device tires to match,
@@ -96,7 +99,7 @@ class Receiver {
         if (port < Constants.maxPort) {
           continue;
         } else {
-          rethrow;
+          onDownloadError?.call(ConnectionLostException());
         }
       }
     }
@@ -122,10 +125,11 @@ class Receiver {
       log("Reciving file...", name: "Receive server");
       try {
         _isBusy = true;
+        final byteStream = request.read();
         final stream = MimeMultipartTransformer(
                 MediaType.parse(request.headers['content-type']!)
                     .parameters["boundary"]!)
-            .bind(request.read());
+            .bind(byteStream);
         onDownloadStart?.call();
         final db = DatabaseManager();
         await for (var mime in stream) {
@@ -184,7 +188,8 @@ class Receiver {
         log("Recived file(s) $_files", name: "Receive server");
         return Response.ok(null);
       } catch (_) {
-        rethrow;
+        log("Download error", name: "Receiver");
+        onDownloadError?.call(ConnectionLostException());
       } finally {
         //File downloaded successfully or failed. Resetting progess for both cases.
         downloadAnimC?.value = 1;
