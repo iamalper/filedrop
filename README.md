@@ -32,7 +32,7 @@ I am not much experienced at Flutter so any advice or pull request welcomed (eve
 
 Also you can help with improving translations or translating another languages with committing in **lib/l10** folder.
 ### TODO
-- [ ] Handle connection lost while transfer and show proper error dialog
+- [x] Handle connection lost while transfer and show proper error dialog
 - [x] Convert throw types from `String` to `enum` or `exception`
 - [x] Convert UI states from `integer` to `enum`
 - [x] Add setting for opt-out crash reporting
