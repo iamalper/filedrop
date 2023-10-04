@@ -143,7 +143,7 @@ class Receiver {
               HeaderValue.parse(mime.headers['content-disposition']!)
                   .parameters["filename"]!;
           File file;
-          if ((Platform.isLinux || Platform.isWindows)) {
+          if ((Platform.isLinux || Platform.isWindows) && !saveToTemp) {
             //Saving to downloads because these platforms don't require any permission
             final dir = Directory(join(
                 (await getDownloadsDirectory())!.path, Constants.saveFolder));
