@@ -157,10 +157,13 @@ class Receiver {
             file = _generateFileName(file, await _tempDir);
           }
           final totalLengh = request.contentLength!;
+          final fileWriter = file.openWrite();
           await for (var bytes in mime.timeout(const Duration(seconds: 10))) {
-            file.writeAsBytesSync(bytes, mode: FileMode.writeOnly);
+            fileWriter.add(bytes);
             downloadAnimC?.value += bytes.length / totalLengh;
           }
+          await fileWriter.flush();
+          await fileWriter.close();
           final dbFile = DbFile(
               name: filename,
               time: DateTime.now(),
@@ -196,7 +199,7 @@ class Receiver {
       } catch (_) {
         log("Download error", name: "Receiver");
         onDownloadError?.call(ConnectionLostException());
-        return Response.badRequest();
+        rethrow;
       } finally {
         //File downloaded successfully or failed. Resetting progess for both cases.
         downloadAnimC?.value = 1;

@@ -18,18 +18,23 @@ void main() {
   var sendingFiles = <File>[];
   var platformFiles = <PlatformFile>[];
   setUpAll(() async {
-    final tempDir = (await getTemporaryDirectory()).path;
+    final tempDir = await getTemporaryDirectory();
+    final subdir = tempDir.createTempSync("sending");
     sendingFiles = [
-      File(path.join(tempDir, "deneme 1.txt")),
-      File(path.join(tempDir, "deneme 2.txt"))
+      File(path.join(tempDir.path, subdir.path, "deneme 1.txt")),
+      File(path.join(tempDir.path, subdir.path, "deneme 2.txt")),
+      File("test/test_image.png"),
     ];
     for (var gidenDosya in sendingFiles) {
-      gidenDosya.writeAsStringSync("deneme gövdesi", mode: FileMode.writeOnly);
+      if (!gidenDosya.existsSync()) {
+        gidenDosya.writeAsStringSync("deneme gövdesi",
+            mode: FileMode.writeOnly);
+      }
     }
     platformFiles = List.generate(
         sendingFiles.length,
         (index) => PlatformFile(
-            readStream: sendingFiles[index].openRead(),
+            //readStream: sendingFiles[index].openRead(),
             size: sendingFiles[index].lengthSync(),
             name: path.basename(sendingFiles[index].path),
             path: sendingFiles[index].path));
@@ -50,7 +55,8 @@ void main() {
       for (var i = 0; i < sendingFiles.length; i++) {
         final gidenDosya = sendingFiles[i];
         final gelenDosya = File(downloadedFiles[i].path);
-        expect(gidenDosya.readAsBytesSync(), gelenDosya.readAsBytesSync(),
+        expect(
+            gidenDosya.readAsBytesSync(), equals(gelenDosya.readAsBytesSync()),
             reason: "All sent files expected to has same content as originals");
       }
     });
