@@ -105,11 +105,6 @@ void main() {
       await Future.delayed(const Duration(seconds: 15));
       expect(throwedError, isNotNull);
     });
-    tearDownAll(() {
-      for (var sentFile in sendingFiles) {
-        sentFile.deleteSync();
-      }
-    });
   });
 }
 
