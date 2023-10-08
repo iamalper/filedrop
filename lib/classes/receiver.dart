@@ -143,7 +143,7 @@ class Receiver {
               HeaderValue.parse(mime.headers['content-disposition']!)
                   .parameters["filename"]!;
           File file;
-          if ((Platform.isLinux || Platform.isWindows)) {
+          if ((Platform.isLinux || Platform.isWindows) && !saveToTemp) {
             //Saving to downloads because these platforms don't require any permission
             final dir = Directory(join(
                 (await getDownloadsDirectory())!.path, Constants.saveFolder));
@@ -157,10 +157,13 @@ class Receiver {
             file = _generateFileName(file, await _tempDir);
           }
           final totalLengh = request.contentLength!;
+          final fileWriter = file.openWrite();
           await for (var bytes in mime.timeout(const Duration(seconds: 10))) {
-            file.writeAsBytesSync(bytes, mode: FileMode.writeOnly);
+            fileWriter.add(bytes);
             downloadAnimC?.value += bytes.length / totalLengh;
           }
+          await fileWriter.flush();
+          await fileWriter.close();
           final dbFile = DbFile(
               name: filename,
               time: DateTime.now(),
