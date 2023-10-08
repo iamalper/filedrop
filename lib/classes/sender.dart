@@ -81,7 +81,7 @@ class Sender {
       if (CancelToken.isCancel(e)) {
         return;
       } else {
-        rethrow;
+        throw ConnectionLostException();
       }
     }
     if (response.statusCode != 200) {
