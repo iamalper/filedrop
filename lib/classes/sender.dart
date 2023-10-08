@@ -21,8 +21,7 @@ class Sender {
   ///
   ///You should pass them to [send] method.
   static Future<List<PlatformFile>?> filePick() async {
-    final result = await FilePicker.platform
-        .pickFiles(withReadStream: true, allowMultiple: true);
+    final result = await FilePicker.platform.pickFiles(allowMultiple: true);
 
     return result?.files;
   }
@@ -44,10 +43,15 @@ class Sender {
   ///Throws [OtherDeviceBusyException] if other device is busy.
   static Future<void> send(Device device, List<PlatformFile> files,
       {AnimationController? uploadAnimC, bool useDb = true}) async {
-    final multiPartFiles = await Future.wait(files
-        .map((e) =>
-            http.MultipartFile.fromPath(e.name, e.path!, filename: e.name))
-        .toList());
+    final multiPartFiles = await Future.wait(files.map((e) async {
+      final readStream = e.readStream;
+      if (readStream == null) {
+        return await http.MultipartFile.fromPath(e.name, e.path!,
+            filename: e.name);
+      } else {
+        return http.MultipartFile(e.name, readStream, e.size, filename: e.name);
+      }
+    }).toList());
     final multipartRequest = http.MultipartRequest("POST", device.uri)
       ..files.addAll(multiPartFiles);
     uploadAnimC?.animateTo(Assets.uploadAnimStart);

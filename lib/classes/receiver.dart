@@ -199,7 +199,7 @@ class Receiver {
       } catch (_) {
         log("Download error", name: "Receiver");
         onDownloadError?.call(ConnectionLostException());
-        rethrow;
+        return Response.badRequest();
       } finally {
         //File downloaded successfully or failed. Resetting progess for both cases.
         downloadAnimC?.value = 1;
