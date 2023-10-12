@@ -7,8 +7,8 @@ class FakePathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin
     implements PathProviderPlatform {
   @override
-  Future<String?> getTemporaryPath() async => p.absolute("tmp");
+  Future<String?> getTemporaryPath() async => p.join("/tmp");
 
   @override
-  Future<String?> getDownloadsPath() async => p.absolute("tmp");
+  Future<String?> getDownloadsPath() async => p.join("/tmp");
 }
