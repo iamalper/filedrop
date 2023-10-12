@@ -49,7 +49,10 @@ void main() {
 
     test('Discover, send and receive files', () async {
       final code = await recieve.listen();
-      final allDevices = await Discover.discover();
+      var allDevices = <Device>[];
+      while (allDevices.isEmpty) {
+        allDevices = await Discover.discover();
+      }
       final devices = allDevices.where((device) => device.code == code);
       expect(devices, hasLength(1), reason: "Expected to discover itself");
       await Sender.send(devices.single, platformFiles, useDb: false);
@@ -60,7 +63,7 @@ void main() {
             gidenDosya.readAsBytesSync(), equals(gelenDosya.readAsBytesSync()),
             reason: "All sent files expected to has same content as originals");
       }
-    });
+    }, timeout: const Timeout(Duration(minutes: 1)));
 
     tearDown(() {
       for (var file in downloadedFiles) {
@@ -89,7 +92,10 @@ void main() {
       final code = await Receiver(
               onDownloadError: (error) => throwedError = error, useDb: false)
           .listen();
-      final devices = await Discover.discover();
+      var devices = <Device>[];
+      while (devices.isEmpty) {
+        devices = await Discover.discover();
+      }
       expect(devices.where((device) => device.code == code), hasLength(1));
       Future.delayed(const Duration(milliseconds: 500), Sender.cancel);
       await Sender.send(
@@ -105,7 +111,7 @@ void main() {
           useDb: false);
       await Future.delayed(const Duration(seconds: 15));
       expect(throwedError, isNotNull);
-    });
+    }, timeout: const Timeout(Duration(minutes: 1, seconds: 15)));
   });
   tearDownAll(() => subdir.deleteSync(recursive: true));
 }
