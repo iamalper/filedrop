@@ -137,7 +137,6 @@ jobs:
           name: linux
           path: |
             build/linux/x64/release/debian/*.deb
-            build/linux/x64/release/bundle
           if-no-files-found: error
 
   build_windows:
@@ -193,16 +192,22 @@ jobs:
       - name: Downloading builds
         uses: actions/download-artifact@v3
 
-      - name: Get version.txt
-        uses: actions/download-artifact@v2
-        with:
-          name: gitversion
-
       - name: Read version
         id: version
         uses: juliangruber/read-file-action@v1
         with:
-          path: version.txt
+          path: gitversion/version.txt
+
+      - name: Rename files
+        run:
+          mv android/flutter-apk/app-release.apk FileDrop-${{ steps.version.outputs.content }}.apk
+          mv android/bundle/release/app-release.aab FileDrop-${{ steps.version.outputs.content }}.aab
+
+      - name: Zip windows folder
+        uses: "vimtor/action-zip@v1.1"
+        with:
+          files: windows/*
+          dest: windows.zip
 
       - name: Releasing builds
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
@@ -211,10 +216,10 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: ${{ env.isRelease == 'false' }}
           files: | 
-            android/flutter-apk/app-release.apk
-            android/bundle/release/app-release.aab
-            linux/*.deb
-            windows
+            *.apk
+            *.aab
+            linux/debian/*.deb
+            windows.zip
 
   version:
     name: Create version number
@@ -234,7 +239,7 @@ jobs:
         uses: gittools/actions/gitversion/execute@v0.9.7
 
       - name: Create version.txt with MajorMinorPatch
-        run: echo ${{ steps.gitversion.outputs.MajorMinorPatch }}${{ steps.gitversion.outputs.PreReleaseTagWithDash }} > version_nw.txt
+        run: echo ${{ steps.gitversion.outputs.majorMinorPatch }}${{ steps.gitversion.outputs.PreReleaseTagWithDash }} > version_nw.txt
 
       - name: Create new file without newline char from version.txt
         run: tr -d '\n' < version_nw.txt > version.txt
@@ -254,7 +259,7 @@ jobs:
     - name: Downloading builds
       uses: actions/download-artifact@v3
       with: 
-         name: builds
+         name: android
 
     - name: Publishing
       uses: r0adkll/upload-google-play@v1
