@@ -182,12 +182,14 @@ jobs:
       - name: Build for windows
         run: flutter build windows
 
-      - name: Upload exe
+      - name: Rename windows build folder
+        run: mv build\windows\runner\Release Windows -f
+      - name: Upload windows folder
         uses: actions/upload-artifact@v2
         with:
           name: builds
           path: |
-            build\windows\runner\Release\*.*
+            Windows
           if-no-files-found: error
 
   release:
@@ -227,6 +229,7 @@ jobs:
             flutter-apk/app-release.apk
             bundle/release/app-release.aab
             *.deb
+            Windows
 
   version:
     name: Create version number
