@@ -70,7 +70,6 @@ void main() {
     });
     tearDownAll(() async {
       await recieve.stopListening();
-      subdir.deleteSync(recursive: true);
     });
   });
 
@@ -107,8 +106,8 @@ void main() {
       await Future.delayed(const Duration(seconds: 15));
       expect(throwedError, isNotNull);
     });
-    tearDownAll(() => subdir.deleteSync(recursive: true));
   });
+  tearDownAll(() => subdir.deleteSync(recursive: true));
 }
 
 class _MyHttpOverrides extends HttpOverrides {} //For using http apis from tests
