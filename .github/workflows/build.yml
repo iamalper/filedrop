@@ -147,6 +147,7 @@ jobs:
 
   build_windows:
     runs-on: windows-latest
+    needs: version
     steps:
       - uses: actions/checkout@v3
       - uses: subosito/flutter-action@v2
