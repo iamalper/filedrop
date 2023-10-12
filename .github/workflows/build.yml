@@ -199,7 +199,7 @@ jobs:
           path: gitversion/version.txt
 
       - name: Rename files
-        run:
+        run: |
           mv android/flutter-apk/app-release.apk FileDrop-${{ steps.version.outputs.content }}.apk
           mv android/bundle/release/app-release.aab FileDrop-${{ steps.version.outputs.content }}.aab
 
