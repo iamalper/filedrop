@@ -145,9 +145,8 @@ jobs:
             build/linux/x64/release/debian/*.deb
           if-no-files-found: error
 
-  build_windows: #Not implemented
+  build_windows:
     runs-on: windows-latest
-    if: false
     steps:
       - uses: actions/checkout@v3
       - uses: subosito/flutter-action@v2
