@@ -17,9 +17,10 @@ void main() {
 
   var sendingFiles = <File>[];
   var platformFiles = <PlatformFile>[];
+  late Directory subdir;
   setUpAll(() async {
     final tempDir = await getTemporaryDirectory();
-    final subdir = tempDir.createTempSync("sending");
+    subdir = tempDir.createTempSync("sending");
     sendingFiles = [
       File(path.join(tempDir.path, subdir.path, "deneme 1.txt")),
       File(path.join(tempDir.path, subdir.path, "deneme 2.txt")),
@@ -69,6 +70,7 @@ void main() {
     });
     tearDownAll(() async {
       await recieve.stopListening();
+      subdir.deleteSync(recursive: true);
     });
   });
 
@@ -105,6 +107,7 @@ void main() {
       await Future.delayed(const Duration(seconds: 15));
       expect(throwedError, isNotNull);
     });
+    tearDownAll(() => subdir.deleteSync(recursive: true));
   });
 }
 
