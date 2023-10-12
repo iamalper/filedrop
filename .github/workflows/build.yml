@@ -75,7 +75,7 @@ jobs:
       - name: Uploading android packages
         uses: actions/upload-artifact@v2
         with:
-          name: builds
+          name: android
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
@@ -134,9 +134,10 @@ jobs:
       - name: Upload deb package
         uses: actions/upload-artifact@v2
         with:
-          name: builds
+          name: linux
           path: |
             build/linux/x64/release/debian/*.deb
+            build/linux/x64/release/bundle
           if-no-files-found: error
 
   build_windows:
@@ -176,7 +177,7 @@ jobs:
       - name: Upload build folder
         uses: actions/upload-artifact@v2
         with:
-          name: builds
+          name: windows
           path: |
             build\windows\runner\Release
           if-no-files-found: error
@@ -191,11 +192,6 @@ jobs:
 
       - name: Downloading builds
         uses: actions/download-artifact@v3
-        with: 
-          name: builds
-
-      - name: Rename windows folder
-        run: mv Release Windows
 
       - name: Get version.txt
         uses: actions/download-artifact@v2
@@ -215,10 +211,10 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: ${{ env.isRelease == 'false' }}
           files: | 
-            flutter-apk/app-release.apk
-            bundle/release/app-release.aab
-            *.deb
-            Windows
+            android/flutter-apk/app-release.apk
+            android/bundle/release/app-release.aab
+            linux/*.deb
+            windows
 
   version:
     name: Create version number
