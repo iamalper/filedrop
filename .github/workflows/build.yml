@@ -178,7 +178,7 @@ jobs:
         with:
           name: builds
           path: |
-            build\windows
+            build\windows\runner\Release
           if-no-files-found: error
 
   release:
@@ -195,7 +195,7 @@ jobs:
           name: builds
 
       - name: Rename windows folder
-        run: mv build/windows/runner/Release Windows
+        run: mv Release Windows
 
       - name: Get version.txt
         uses: actions/download-artifact@v2
