@@ -28,15 +28,12 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: gitversion
-      
-      - name: Create new file without newline char from version.txt
-        run: tr -d '\n' < version.txt > version1.txt
 
       - name: Read version
         id: version
         uses: juliangruber/read-file-action@v1
         with:
-          path: version1.txt
+          path: version.txt
       
       - name: Update version in pubpsec.yaml
         run: sed -i 's/1.0.0+1/${{ steps.version.outputs.content }}+${{ github.run_number }}/g' pubspec.yaml
@@ -94,15 +91,12 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: gitversion
-      
-      - name: Create new file without newline char from version.txt
-        run: tr -d '\n' < version.txt > version1.txt
 
       - name: Read version
         id: version
         uses: juliangruber/read-file-action@v1
         with:
-          path: version1.txt
+          path: version.txt
       
       - name: Update version in pubpsec.yaml
         run: sed -i 's/1.0.0+1/${{ steps.version.outputs.content }}+${{ github.run_number }}/g' pubspec.yaml
@@ -161,15 +155,12 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: gitversion
-      
-      - name: Create new file without newline char from version.txt
-        run: tr -d '\n' < version.txt > version1.txt
 
       - name: Read version
         id: version
         uses: juliangruber/read-file-action@v1
         with:
-          path: version1.txt
+          path: version.txt
       
       - name: Update version in pubpsec.yaml
         run: sed -i 's/1.0.0+1/${{ steps.version.outputs.content }}+${{ github.run_number }}/g' pubspec.yaml
@@ -182,14 +173,12 @@ jobs:
       - name: Build for windows
         run: flutter build windows
 
-      - name: Rename windows build folder
-        run: mv build\windows\runner\Release Windows -f
-      - name: Upload windows folder
+      - name: Upload build folder
         uses: actions/upload-artifact@v2
         with:
           name: builds
           path: |
-            Windows
+            build\windows
           if-no-files-found: error
 
   release:
@@ -205,19 +194,19 @@ jobs:
         with: 
           name: builds
 
+      - name: Rename windows folder
+        run: mv build/windows/runner/Release Windows
+
       - name: Get version.txt
         uses: actions/download-artifact@v2
         with:
           name: gitversion
 
-      - name: Create new file without newline char from version.txt
-        run: tr -d '\n' < version.txt > version1.txt
-
       - name: Read version
         id: version
         uses: juliangruber/read-file-action@v1
         with:
-          path: version1.txt
+          path: version.txt
 
       - name: Releasing builds
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
@@ -249,7 +238,10 @@ jobs:
         uses: gittools/actions/gitversion/execute@v0.9.7
 
       - name: Create version.txt with MajorMinorPatch
-        run: echo ${{ steps.gitversion.outputs.MajorMinorPatch }}${{ steps.gitversion.outputs.PreReleaseTagWithDash }} > version.txt
+        run: echo ${{ steps.gitversion.outputs.MajorMinorPatch }}${{ steps.gitversion.outputs.PreReleaseTagWithDash }} > version_nw.txt
+
+      - name: Create new file without newline char from version.txt
+        run: tr -d '\n' < version_nw.txt > version.txt
 
       - name: Upload version.txt
         uses: actions/upload-artifact@v2
