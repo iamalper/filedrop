@@ -206,7 +206,7 @@ jobs:
       - name: Zip windows folder
         uses: "vimtor/action-zip@v1.1"
         with:
-          files: windows/*
+          files: windows
           dest: windows.zip
 
       - name: Releasing builds
