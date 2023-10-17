@@ -218,7 +218,7 @@ jobs:
           files: | 
             *.apk
             *.aab
-            *.deb
+            linux/debian/*.deb
             windows.zip
 
   version:
