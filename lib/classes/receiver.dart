@@ -229,5 +229,5 @@ class Receiver {
   ///Closes the listening server.
   ///
   ///Is is safe to call before [listen] or after [listen] .
-  Future<void>? stopListening() => _server?.close();
+  Future<void> stopListening() async => await _server?.close();
 }
