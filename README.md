@@ -15,13 +15,10 @@ You can get .deb packages from <a href="https://github.com/iamalper/weepy/releas
 <a href='https://play.google.com/store/apps/details?id=com.alper.weepy&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img style="height: 40%; width: 40%" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'/></a>
 
 Or you can get **.apk** or **.aab** packages from <a href="https://github.com/iamalper/weepy/releases">Releases</a>
-### Windows,
+### Windows
 Windows packages not tested, but you can get them  from <a href="https://github.com/iamalper/weepy/releases">Releases</a> in windows.zip
-### Mac OS, IOS
-I don't ship packages or test for these platfroms, homever you can build yourself.
-### Web
-I can't find a way for accessing local networks from browsers. If you build for web, it has no functionalty.
 
+*For other platforms, PR's welcomed but i don't have any plans to support them.*
 ## Build
 It is a flutter project so if you have **flutter** installed, you can build with `flutter build` from repo directory.
 If not, see <a href=https://docs.flutter.dev/get-started/install>Flutter docs: Install</a>
