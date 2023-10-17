@@ -218,7 +218,7 @@ jobs:
           files: | 
             *.apk
             *.aab
-            linux/debian/*.deb
+            linux/x64/release/debian/*.deb
             windows.zip
 
   version:
