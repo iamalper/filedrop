@@ -31,8 +31,4 @@ Thank you, if you are interesting for contributing.
 
 Any PR or ideas welcomed. Please commit to develop branch. I am keeping main branch more stable and automatically published to Google Play testers.
 
-You can contribute with completing TODOs, tweaking UI, improving translations or translating another languages (with committing in **lib/l10** folder).
-### TODO
-- [ ] Add setting for change to system theme
-- [ ] Add logs for crash reporting
-- [ ] Show builds in github pages instead of just privacy policy text
+You can contribute with solving issues from Issues tab, tweaking UI, improving translations or translating another languages (with committing in **lib/l10** folder).
