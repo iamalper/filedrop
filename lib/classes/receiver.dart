@@ -16,7 +16,6 @@ import 'package:weepy/classes/exceptions.dart';
 import 'database.dart';
 import '../models.dart';
 import '../constants.dart';
-import 'discover.dart';
 
 ///Class for all Recieve jobs
 ///
@@ -90,16 +89,14 @@ class Receiver {
       _ms = MediaStore();
       MediaStore.appFolder = Constants.saveFolder;
     }
-
-    final ip = await Discover.getMyIp();
     _code = Random().nextInt(8888) + 1111;
-
     _isBusy = false;
 
     for (var port = Constants.minPort; port <= Constants.maxPort; port++) {
       try {
-        _server =
-            await shelf.serve(_requestMethod, ip, port, poweredByHeader: null);
+        _server = await shelf.serve(
+            _requestMethod, InternetAddress.anyIPv4, port,
+            poweredByHeader: null);
         break;
       } on SocketException catch (_) {
         if (port < Constants.maxPort) {
@@ -109,8 +106,10 @@ class Receiver {
         }
       }
     }
-    log("Listening for new file with port: ${_server!.port}, code: $_code",
-        name: "Receive");
+    if (_server != null) {
+      log("Listening for new file with port: ${_server!.port}, code: $_code",
+          name: "Receive");
+    }
     return _code;
   }
 

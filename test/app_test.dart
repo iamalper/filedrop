@@ -12,6 +12,7 @@ import 'package:weepy/models.dart';
 import 'fake_path_provider.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = _MyHttpOverrides();
   PathProviderPlatform.instance = FakePathProviderPlatform();
 
@@ -63,7 +64,7 @@ void main() {
             gidenDosya.readAsBytesSync(), equals(gelenDosya.readAsBytesSync()),
             reason: "All sent files expected to has same content as originals");
       }
-    }, timeout: const Timeout(Duration(minutes: 1)));
+    }, timeout: const Timeout(Duration(seconds: 20)));
 
     tearDown(() {
       for (var file in downloadedFiles) {
@@ -81,7 +82,7 @@ void main() {
       "Handle no_receiver error",
       () async {
         final sendFuture = Sender.send(
-            Device(adress: await Discover.getMyIp(), code: 1000, port: 2326),
+            const Device(adress: "192.168.9.9", code: 1000, port: 2326),
             platformFiles,
             useDb: false);
         expect(sendFuture, throwsA(isA<FileDropException>()));
