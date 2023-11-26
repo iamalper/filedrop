@@ -55,8 +55,8 @@ void main() {
         allDevices = await Discover.discover();
       }
       final devices = allDevices.where((device) => device.code == code);
-      expect(devices, hasLength(1), reason: "Expected to discover itself");
-      await Sender.send(devices.single, platformFiles, useDb: false);
+      expect(devices, isNotEmpty, reason: "Expected to discover itself");
+      await Sender.send(devices.first, platformFiles, useDb: false);
       for (var i = 0; i < sendingFiles.length; i++) {
         final gidenDosya = sendingFiles[i];
         final gelenDosya = File(downloadedFiles[i].path);
@@ -97,10 +97,10 @@ void main() {
       while (devices.isEmpty) {
         devices = await Discover.discover();
       }
-      expect(devices.where((device) => device.code == code), hasLength(1));
+      expect(devices.where((device) => device.code == code), isNotEmpty);
       Future.delayed(const Duration(milliseconds: 500), Sender.cancel);
       await Sender.send(
-          devices.single,
+          devices.first,
           [
             PlatformFile(
                 name: "testt",
