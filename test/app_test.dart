@@ -85,7 +85,7 @@ void main() {
             const Device(adress: "192.168.9.9", code: 1000, port: 2326),
             platformFiles,
             useDb: false);
-        expectLater(sendFuture, throwsA(isA<FileDropException>()));
+        await expectLater(sendFuture, throwsA(isA<FileDropException>()));
       },
     );
     test("Handle connection lost while reciving", () async {
