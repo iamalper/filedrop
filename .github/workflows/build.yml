@@ -178,7 +178,7 @@ jobs:
         with:
           name: windows
           path: |
-            build\windows\runner\Release
+            build\windows\x64\runner\Release
           if-no-files-found: error
 
   release:
