@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:weepy/classes/discover.dart';
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/classes/sender.dart';
@@ -10,26 +9,29 @@ import 'package:weepy/classes/receiver.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:weepy/models.dart';
-import 'fake_path_provider.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-  HttpOverrides.global = _MyHttpOverrides();
-  PathProviderPlatform.instance = FakePathProviderPlatform();
-
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   var sendingFiles = <File>[];
   var platformFiles = <PlatformFile>[];
   late Directory subdir;
   setUpAll(() async {
     final tempDir = await getTemporaryDirectory();
     subdir = tempDir.createTempSync("sending");
+    final testImageData =
+        await rootBundle.load(path.join("assets", "test_image.png"));
+    final testImageFile = File(path.join(subdir.path, "test_image.png"));
+    testImageFile.writeAsBytesSync(testImageData.buffer.asInt8List(),
+        mode: FileMode.writeOnly);
     sendingFiles = [
-      File(path.join(tempDir.path, subdir.path, "deneme 1.txt")),
-      File(path.join(tempDir.path, subdir.path, "deneme 2.txt")),
-      File("test/test_image.png"),
+      File(path.join(subdir.path, "deneme 1.txt")),
+      File(path.join(subdir.path, "deneme 2.txt")),
+      testImageFile
     ];
     for (var gidenDosya in sendingFiles) {
-      if (!gidenDosya.existsSync()) {
+      if (path.extension(gidenDosya.path) == ".txt") {
         gidenDosya.writeAsStringSync("deneme gövdesi",
             mode: FileMode.writeOnly);
       }
@@ -49,7 +51,7 @@ void main() {
         useDb: false,
         onAllFilesDownloaded: (files) => downloadedFiles = files);
 
-    test('Discover, send and receive files', () async {
+    testWidgets('Discover, send and receive files', (_) async {
       final code = await recieve.listen();
       var allDevices = <Device>[];
       while (allDevices.isEmpty) {
@@ -79,19 +81,21 @@ void main() {
   });
 
   group('Error handling', () {
-    test("Handle no_receiver error", () async {
+    testWidgets("Handle no_receiver error", (_) async {
       final rand1 = Random().nextInt(30);
       final rand2 = Random().nextInt(30);
-      sendFuture() => Sender.send(
+      final sendFuture = Sender.send(
           Device(adress: "192.168.$rand1.$rand2", code: 1000, port: 2326),
           platformFiles,
           useDb: false);
       await expectLater(sendFuture, throwsA(isA<FileDropException>()));
-    }, retry: 5);
-    test("Handle connection lost while reciving", () async {
+    }, retry: 2);
+    testWidgets("Handle connection lost while reciving", (_) async {
       FileDropException? throwedError;
       final code = await Receiver(
-              onDownloadError: (error) => throwedError = error, useDb: false)
+              onDownloadError: (error) => throwedError = error,
+              useDb: false,
+              saveToTemp: true)
           .listen();
       var devices = <Device>[];
       while (devices.isEmpty) {
@@ -116,5 +120,3 @@ void main() {
   });
   tearDownAll(() => subdir.deleteSync(recursive: true));
 }
-
-class _MyHttpOverrides extends HttpOverrides {} //For using http apis from tests
