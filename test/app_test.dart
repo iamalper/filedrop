@@ -81,11 +81,11 @@ void main() {
     test(
       "Handle no_receiver error",
       () async {
-        final sendFuture = Sender.send(
+        sendFuture() => Sender.send(
             const Device(adress: "192.168.9.9", code: 1000, port: 2326),
             platformFiles,
             useDb: false);
-        expect(sendFuture, throwsA(isA<FileDropException>()));
+        expectLater(sendFuture, throwsA(isA<FileDropException>()));
       },
     );
     test("Handle connection lost while reciving", () async {
