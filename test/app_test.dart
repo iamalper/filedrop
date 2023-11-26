@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:weepy/classes/discover.dart';
@@ -78,16 +79,15 @@ void main() {
   });
 
   group('Error handling', () {
-    test(
-      "Handle no_receiver error",
-      () async {
-        sendFuture() => Sender.send(
-            const Device(adress: "192.168.9.9", code: 1000, port: 2326),
-            platformFiles,
-            useDb: false);
-        await expectLater(sendFuture, throwsA(isA<FileDropException>()));
-      },
-    );
+    test("Handle no_receiver error", () async {
+      final rand1 = Random().nextInt(30);
+      final rand2 = Random().nextInt(30);
+      sendFuture() => Sender.send(
+          Device(adress: "192.168.$rand1.$rand2", code: 1000, port: 2326),
+          platformFiles,
+          useDb: false);
+      await expectLater(sendFuture, throwsA(isA<FileDropException>()));
+    }, retry: 5);
     test("Handle connection lost while reciving", () async {
       FileDropException? throwedError;
       final code = await Receiver(
