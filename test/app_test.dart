@@ -55,11 +55,8 @@ void main() {
         allDevices = await Discover.discover();
       }
       final devices = allDevices.where((device) => device.code == code);
-      //Filtering devices with their adress because reveiver can run for multi adress
-      final localdevices =
-          devices.where((device) => device.adress.startsWith("192"));
-      expect(localdevices, hasLength(1), reason: "Expected to discover itself");
-      await Sender.send(localdevices.single, platformFiles, useDb: false);
+      expect(devices, hasLength(1), reason: "Expected to discover itself");
+      await Sender.send(devices.single, platformFiles, useDb: false);
       for (var i = 0; i < sendingFiles.length; i++) {
         final gidenDosya = sendingFiles[i];
         final gelenDosya = File(downloadedFiles[i].path);
@@ -84,11 +81,11 @@ void main() {
     test(
       "Handle no_receiver error",
       () async {
-        sendFuture() => Sender.send(
-            const Device(adress: "192.168.1.25", code: 1000, port: 2326),
+        final sendFuture = Sender.send(
+            const Device(adress: "192.168.9.9", code: 1000, port: 2326),
             platformFiles,
             useDb: false);
-        await expectLater(sendFuture, throwsA(isA<FileDropException>()));
+        expect(sendFuture, throwsA(isA<FileDropException>()));
       },
     );
     test("Handle connection lost while reciving", () async {
@@ -100,10 +97,10 @@ void main() {
       while (devices.isEmpty) {
         devices = await Discover.discover();
       }
-      expect(devices.where((device) => device.code == code), isNotEmpty);
+      expect(devices.where((device) => device.code == code), hasLength(1));
       Future.delayed(const Duration(milliseconds: 500), Sender.cancel);
       await Sender.send(
-          devices.first,
+          devices.single,
           [
             PlatformFile(
                 name: "testt",
