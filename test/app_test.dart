@@ -55,7 +55,7 @@ void main() {
         allDevices = await Discover.discover();
       }
       final devices = allDevices.where((device) => device.code == code);
-      expect(devices, isNotEmpty, reason: "Expected to discover itself");
+      expect(devices, hasLength(1), reason: "Expected to discover itself");
       await Sender.send(devices.single, platformFiles, useDb: false);
       for (var i = 0; i < sendingFiles.length; i++) {
         final gidenDosya = sendingFiles[i];
