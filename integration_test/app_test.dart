@@ -20,8 +20,7 @@ void main() {
   setUpAll(() async {
     final tempDir = await getTemporaryDirectory();
     subdir = tempDir.createTempSync("sending");
-    final testImageData =
-        await rootBundle.load(path.join("assets", "test_image.png"));
+    final testImageData = await rootBundle.load("assets/test_image.png");
     final testImageFile = File(path.join(subdir.path, "test_image.png"));
     testImageFile.writeAsBytesSync(testImageData.buffer.asInt8List(),
         mode: FileMode.writeOnly);
@@ -67,7 +66,7 @@ void main() {
             gidenDosya.readAsBytesSync(), equals(gelenDosya.readAsBytesSync()),
             reason: "All sent files expected to has same content as originals");
       }
-    }, timeout: const Timeout(Duration(seconds: 20)));
+    });
 
     tearDown(() {
       for (var file in downloadedFiles) {
