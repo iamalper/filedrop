@@ -37,7 +37,14 @@ class Receiver {
   final bool saveToTemp;
 
   ///If [downloadAnimC] is set, progress will be sent to it.
+  @Deprecated(
+      "Prefer downloadUpdatePercent() because it allows updating UI from isolates")
   final AnimationController? downloadAnimC;
+
+  ///[onDownloadUpdatePercent] will be called for each saved chunk in download operation.
+  ///
+  ///Use for animating progress.
+  final void Function(double percent)? onDownloadUpdatePercent;
 
   ///[port] listened for incoming connections. Should not set except testing or
   ///other devices will require manual port setting.
@@ -62,11 +69,12 @@ class Receiver {
 
   ///Listen and receive files from other devices.
   ///
-  ///Set [downloadAnimC], [onDownloadStart], [onFileDownloaded], [onAllFilesDownloaded] for animating download progess.
+  ///Set [onDownloadUpdatePercent], [onDownloadStart], [onFileDownloaded], [onAllFilesDownloaded] for animating download progess.
   ///
   ///Call [listen] for start listening.
   Receiver(
       {this.downloadAnimC,
+      this.onDownloadUpdatePercent,
       this.useDb = true,
       this.saveToTemp = false,
       this.port,
@@ -157,9 +165,12 @@ class Receiver {
           }
           final totalLengh = request.contentLength!;
           final fileWriter = file.openWrite();
+          var downloadPercent = 0.0;
           await for (var bytes in mime.timeout(const Duration(seconds: 10))) {
             fileWriter.add(bytes);
-            downloadAnimC?.value += bytes.length / totalLengh;
+            downloadPercent += bytes.length / totalLengh;
+            downloadAnimC?.value = downloadPercent;
+            onDownloadUpdatePercent?.call(downloadPercent);
           }
           await fileWriter.flush();
           await fileWriter.close();
