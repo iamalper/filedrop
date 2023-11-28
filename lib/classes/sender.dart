@@ -34,14 +34,16 @@ class Sender {
   ///
   ///[files] will send to [device]
   ///
-  ///If [uploadAnimC] is set, progess will be sent to it.
+  ///If [uploadAnimC] or [onUploadProgress] is set, progess will be sent to it.
   ///
   ///If [useDb] is `true`, file informations will be saved to sqflite database.
   ///Must set to `false` for prevent database usage.
   ///
   ///Throws [OtherDeviceBusyException] if other device is busy.
   static Future<void> send(Device device, Iterable<PlatformFile> files,
-      {AnimationController? uploadAnimC, bool useDb = true}) async {
+      {AnimationController? uploadAnimC,
+      bool useDb = true,
+      void Function(double percent)? onUploadProgress}) async {
     final multiPartFiles = await Future.wait(files.map((e) async {
       final readStream = e.readStream;
       if (readStream == null) {
@@ -74,6 +76,7 @@ class Sender {
         assert(mappedValue <= Assets.uploadAnimEnd &&
             mappedValue >= Assets.uploadAnimStart);
         uploadAnimC?.animateTo(mappedValue.toDouble());
+        onUploadProgress?.call(newValue);
       }));
       uploadAnimC?.animateTo(1.0);
     } on DioException catch (e) {

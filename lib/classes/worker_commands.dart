@@ -1,6 +1,4 @@
-class Match {
-  final int code;
-  const Match(this.code);
+class UpdatePercent {
+  final double newPercent;
+  const UpdatePercent(this.newPercent);
 }
-
-class Stop {}

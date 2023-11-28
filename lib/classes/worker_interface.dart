@@ -11,10 +11,9 @@ import 'dart:ui';
 import 'package:workmanager/workmanager.dart';
 
 import 'receiver.dart';
+import 'worker_commands.dart';
 
 enum MyTasks { receive, send }
-
-enum ReceiverIsolatePorts { percentUpdate, command }
 
 final _workManager = Workmanager();
 
@@ -32,23 +31,11 @@ void _callBack() {
             saveToTemp: receiverMap["saveToTemp"],
             code: receiverMap["code"],
             onDownloadUpdatePercent: (percent) {
-              final sendPort = IsolateNameServer.lookupPortByName(
-                  ReceiverIsolatePorts.percentUpdate.name);
-              sendPort?.send(percent);
+              final sendPort =
+                  IsolateNameServer.lookupPortByName(MyTasks.receive.name);
+              sendPort?.send(UpdatePercent(percent));
             });
-        final receivePort = ReceivePort("commandPort");
-        IsolateNameServer.registerPortWithName(
-            receivePort.sendPort, ReceiverIsolatePorts.command.name);
         await receiver.listen();
-        receivePort.listen((message) async {
-          switch (message) {
-            case final commands.Stop _:
-              await receiver.stopListening();
-              receivePort.close();
-            default:
-              throw Exception("Unsupported command for receiver");
-          }
-        });
         return true;
       case MyTasks.send:
         final senderMap = inputData!;
@@ -57,23 +44,54 @@ void _callBack() {
         final platformFiles = files.map((e) => PlatformFile(
             path: e.path, name: basename(e.path), size: e.lengthSync()));
         final device = Device.fromMap(senderMap);
-        await Sender.send(device, platformFiles);
+        final port = IsolateNameServer.lookupPortByName(MyTasks.send.name);
+        await Sender.send(device, platformFiles,
+            onUploadProgress: (percent) => port?.send(UpdatePercent(percent)));
         return true;
     }
   });
 }
 
-Future<void> initalize() async {
-  throw UnimplementedError();
-  // ignore: dead_code
-  await _workManager.initialize(_callBack);
-}
+Future<void> initalize() => _workManager.initialize(_callBack);
 
-ReceivePort runReceiver(Receiver receiver) {
+Future<void> cancelSend() => _workManager.cancelByUniqueName(MyTasks.send.name);
+
+Future<void> cancelReceive() =>
+    _workManager.cancelByUniqueName(MyTasks.receive.name);
+
+ReceivePort runReceiver(
+    Receiver receiver, void Function(double percent)? onReceivePercent) {
   final port = ReceivePort();
-  IsolateNameServer.registerPortWithName(
-      port.sendPort, ReceiverIsolatePorts.percentUpdate.name);
+  IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.receive.name);
+  port.listen((message) {
+    switch (message) {
+      case final commands.UpdatePercent e:
+        onReceivePercent?.call(e.newPercent);
+        break;
+      default:
+        throw Error();
+    }
+  });
   _workManager.registerOneOffTask(MyTasks.receive.name, MyTasks.receive.name,
       inputData: receiver.map, existingWorkPolicy: ExistingWorkPolicy.keep);
+  return port;
+}
+
+ReceivePort runSender(Device device, List<String> filePaths,
+    void Function(double percent)? onSendPercent) {
+  final inputMap = device.map..addAll({"files": filePaths});
+  final port = ReceivePort();
+  IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.send.name);
+  port.listen((message) {
+    switch (message) {
+      case final commands.UpdatePercent e:
+        onSendPercent?.call(e.newPercent);
+        break;
+      default:
+        throw Error();
+    }
+  });
+  _workManager.registerOneOffTask(MyTasks.send.name, MyTasks.send.name,
+      inputData: inputMap, existingWorkPolicy: ExistingWorkPolicy.keep);
   return port;
 }

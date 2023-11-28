@@ -1,6 +1,7 @@
 import 'package:weepy/files_riverpod.dart';
 import 'package:weepy/models.dart';
-
+import '../classes/worker_interface.dart';
+import '../classes/worker_commands.dart';
 import '../classes/exceptions.dart';
 import '../constants.dart';
 import 'package:flutter/material.dart';
@@ -69,6 +70,7 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
 
   Future<void> _receive() async {
     try {
+      runReceiver(_receiveClass, (percent) {});
       _code = await _receiveClass.listen();
       uiStatus = _UiState.listening;
     } on FileDropException catch (err) {
