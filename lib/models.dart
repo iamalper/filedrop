@@ -105,6 +105,14 @@ class Device {
     }
   }
 
+  Map<String, dynamic> get map =>
+      {"adress": adress, "code": code, "port": port};
+
+  Device.fromMap(Map<String, dynamic> map)
+      : adress = map["adress"],
+        code = map["code"],
+        port = map["port"];
+
   ///deviceModel{Adress: [adress], Code: [code], Port: [port]}
   @override
   String toString() =>

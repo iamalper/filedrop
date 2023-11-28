@@ -24,7 +24,7 @@ class Receiver {
   final _files = <DbFile>[];
   late MediaStore _ms;
   final _tempDir = getTemporaryDirectory();
-  late int _code;
+  final int _code;
   HttpServer? _server;
   bool _isBusy = false;
 
@@ -72,16 +72,18 @@ class Receiver {
   ///Set [onDownloadUpdatePercent], [onDownloadStart], [onFileDownloaded], [onAllFilesDownloaded] for animating download progess.
   ///
   ///Call [listen] for start listening.
-  Receiver(
-      {this.downloadAnimC,
-      this.onDownloadUpdatePercent,
-      this.useDb = true,
-      this.saveToTemp = false,
-      this.port,
-      this.onDownloadStart,
-      this.onFileDownloaded,
-      this.onAllFilesDownloaded,
-      this.onDownloadError});
+  Receiver({
+    this.downloadAnimC,
+    this.onDownloadUpdatePercent,
+    this.useDb = true,
+    this.saveToTemp = false,
+    this.port,
+    this.onDownloadStart,
+    this.onFileDownloaded,
+    this.onAllFilesDownloaded,
+    this.onDownloadError,
+    int? code,
+  }) : _code = code ?? Random().nextInt(8888) + 1111;
 
   ///Starts listening for discovery and recieving file(s).
   ///Handles one connection at once. If another device tires to match,
@@ -97,7 +99,6 @@ class Receiver {
       _ms = MediaStore();
       MediaStore.appFolder = Constants.saveFolder;
     }
-    _code = Random().nextInt(8888) + 1111;
     _isBusy = false;
 
     for (var port = Constants.minPort; port <= Constants.maxPort; port++) {
@@ -240,4 +241,18 @@ class Receiver {
   ///
   ///Is is safe to call before [listen] or after [listen] .
   Future<void> stopListening() async => await _server?.close();
+
+  Map<String, dynamic> get map => {
+        "useDb": useDb,
+        "saveToTemp": saveToTemp,
+        "port": port,
+        "code": _code,
+      };
+
+  Receiver.fromMap(Map<String, dynamic> map)
+      : this(
+            useDb: map["useDb"],
+            saveToTemp: map["saveToTemp"],
+            port: map["port"],
+            code: map["code"]);
 }

@@ -22,7 +22,6 @@ class Sender {
   ///You should pass them to [send] method.
   static Future<List<PlatformFile>?> filePick() async {
     final result = await FilePicker.platform.pickFiles(allowMultiple: true);
-
     return result?.files;
   }
 
@@ -41,7 +40,7 @@ class Sender {
   ///Must set to `false` for prevent database usage.
   ///
   ///Throws [OtherDeviceBusyException] if other device is busy.
-  static Future<void> send(Device device, List<PlatformFile> files,
+  static Future<void> send(Device device, Iterable<PlatformFile> files,
       {AnimationController? uploadAnimC, bool useDb = true}) async {
     final multiPartFiles = await Future.wait(files.map((e) async {
       final readStream = e.readStream;
