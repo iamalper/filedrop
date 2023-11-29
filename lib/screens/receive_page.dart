@@ -1,8 +1,9 @@
+import 'dart:math';
+
 import 'package:weepy/files_riverpod.dart';
 import 'package:weepy/models.dart';
 import '../classes/worker_interface.dart';
-import '../classes/worker_commands.dart';
-import '../classes/exceptions.dart';
+import '../classes/worker_messages.dart' as commands;
 import '../constants.dart';
 import 'package:flutter/material.dart';
 import '../classes/receiver.dart';
@@ -35,7 +36,7 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
     with TickerProviderStateMixin {
   late AnimationController _downloadAnimC;
   late Receiver _receiveClass;
-  late int _code;
+  final _code = Random().nextInt(8999) + 1000;
   late List<DbFile> _files;
   late String errorMessage;
 
@@ -52,8 +53,9 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
       ..addListener(() {
         setState(() {});
       });
+    //TODO: Instead, create Receiver inside worker and pass callbacks
     _receiveClass = Receiver(
-        downloadAnimC: _downloadAnimC,
+        /*downloadAnimC: _downloadAnimC,
         onDownloadStart: () => uiStatus = _UiState.downloading,
         onAllFilesDownloaded: (files) async {
           await ref.read(filesProvider.notifier).addFiles(files);
@@ -63,22 +65,30 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
         onDownloadError: (e) {
           errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
           uiStatus = _UiState.error;
-        });
+        },*/
+        code: _code);
     _receive();
     super.initState();
   }
 
   Future<void> _receive() async {
-    try {
-      runReceiver(_receiveClass, (percent) {});
-      _code = await _receiveClass.listen();
-      uiStatus = _UiState.listening;
-    } on FileDropException catch (err) {
-      if (context.mounted) {
-        errorMessage = err.getErrorMessage(AppLocalizations.of(context)!);
-        uiStatus = _UiState.error;
+    final port = runReceiver(_receiveClass, (percent) {});
+    port.listen((message) {
+      switch (message) {
+        case final commands.UpdatePercent percent:
+          _downloadAnimC.value = percent.newPercent;
+          break;
+        case final commands.FiledropError e:
+          if (context.mounted) {
+            errorMessage =
+                e.exception.getErrorMessage(AppLocalizations.of(context)!);
+            uiStatus = _UiState.error;
+          }
+        default:
+          throw Error();
       }
-    }
+    });
+    uiStatus = _UiState.listening;
   }
 
   @override

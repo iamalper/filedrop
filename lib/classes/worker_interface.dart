@@ -5,13 +5,12 @@ import 'package:path/path.dart';
 import 'package:weepy/classes/sender.dart';
 import 'package:weepy/models.dart';
 
-import 'worker_commands.dart' as commands;
+import 'worker_messages.dart' as commands;
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:workmanager/workmanager.dart';
 
 import 'receiver.dart';
-import 'worker_commands.dart';
 
 enum MyTasks { receive, send }
 
@@ -33,7 +32,7 @@ void _callBack() {
             onDownloadUpdatePercent: (percent) {
               final sendPort =
                   IsolateNameServer.lookupPortByName(MyTasks.receive.name);
-              sendPort?.send(UpdatePercent(percent));
+              sendPort?.send(commands.UpdatePercent(percent));
             });
         await receiver.listen();
         return true;
@@ -46,7 +45,8 @@ void _callBack() {
         final device = Device.fromMap(senderMap);
         final port = IsolateNameServer.lookupPortByName(MyTasks.send.name);
         await Sender.send(device, platformFiles,
-            onUploadProgress: (percent) => port?.send(UpdatePercent(percent)));
+            onUploadProgress: (percent) =>
+                port?.send(commands.UpdatePercent(percent)));
         return true;
     }
   });
