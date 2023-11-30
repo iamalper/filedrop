@@ -27,6 +27,7 @@ class Receiver {
   final int _code;
   HttpServer? _server;
   bool _isBusy = false;
+  int get code => _code;
 
   ///If [useDb] is `true`, file informations will be saved to sqflite database.
   ///Don't needed to open the database manually.
@@ -85,6 +86,19 @@ class Receiver {
     int? code,
   }) : _code = code ?? Random().nextInt(8888) + 1111;
 
+  ///Get storage permission for Android and IOS
+  ///
+  ///For other platforms always returns [true]
+  Future<bool> checkPermission() async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      //These platforms needs storage permissions (only tested on Android)
+      final perm = await Permission.storage.request();
+      return perm.isGranted;
+    } else {
+      return true;
+    }
+  }
+
   ///Starts listening for discovery and recieving file(s).
   ///Handles one connection at once. If another device tires to match,
   ///sends `400 Bad request` as response
@@ -92,12 +106,15 @@ class Receiver {
   ///Returns the code generated for discovery. Other devices should select this code for
   ///connecting to this device
   Future<int> listen() async {
-    if (!saveToTemp && (Platform.isAndroid || Platform.isIOS)) {
-      //These platforms needs storage permissions (only tested on Android)
-      final perm = await Permission.storage.request();
-      if (!perm.isGranted) throw NoStoragePermissionException();
-      _ms = MediaStore();
-      MediaStore.appFolder = Constants.saveFolder;
+    if (!saveToTemp) {
+      final permissionStatus = await checkPermission();
+      if (!permissionStatus) {
+        throw NoStoragePermissionException();
+      }
+      if (Platform.isAndroid) {
+        _ms = MediaStore();
+        MediaStore.appFolder = Constants.saveFolder;
+      }
     }
     _isBusy = false;
 
