@@ -40,6 +40,9 @@ android {
     ndkVersion flutter.ndkVersion
 
     compileOptions {
+        //flutter_local_notifications
+        coreLibraryDesugaringEnabled true
+        //------
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
@@ -63,12 +66,6 @@ android {
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-
-        //flutter_local_notifications
-        coreLibraryDesugaringEnabled true
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-        //------
     }
 
       signingConfigs {
