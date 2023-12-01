@@ -17,7 +17,9 @@ void main() {
   var sendingFiles = <File>[];
   var platformFiles = <PlatformFile>[];
   late Directory subdir;
+  late Sender sender;
   setUpAll(() async {
+    sender = Sender();
     final tempDir = await getTemporaryDirectory();
     subdir = tempDir.createTempSync("sending");
     final testImageData = await rootBundle.load("assets/test_image.png");
@@ -58,7 +60,7 @@ void main() {
       }
       final devices = allDevices.where((device) => device.code == code);
       expect(devices, isNotEmpty, reason: "Expected to discover itself");
-      await Sender.send(devices.first, platformFiles, useDb: false);
+      await sender.send(devices.first, platformFiles, useDb: false);
       for (var i = 0; i < sendingFiles.length; i++) {
         final gidenDosya = sendingFiles[i];
         final gelenDosya = File(downloadedFiles[i].path);
@@ -83,7 +85,7 @@ void main() {
     testWidgets("Handle no_receiver error", (_) async {
       final rand1 = Random().nextInt(30);
       final rand2 = Random().nextInt(30);
-      final sendFuture = Sender.send(
+      final sendFuture = sender.send(
           Device(adress: "192.168.$rand1.$rand2", code: 1000, port: 2326),
           platformFiles,
           useDb: false);
@@ -101,8 +103,8 @@ void main() {
         devices = await Discover.discover();
       }
       expect(devices.where((device) => device.code == code), isNotEmpty);
-      Future.delayed(const Duration(milliseconds: 500), Sender.cancel);
-      await Sender.send(
+      Future.delayed(const Duration(milliseconds: 500), sender.cancel);
+      await sender.send(
           devices.first,
           [
             PlatformFile(

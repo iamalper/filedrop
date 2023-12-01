@@ -17,6 +17,10 @@
         android:requestLegacyExternalStorage="true"> 
         <!-- Need for API level 29. Scoped Storage has some issue in Android 10. So, google recommanded to add this. -->
         <!-- Read more from here: https://developer.android.com/training/data-storage/shared/media#access-other-apps-files-->
+
+        <!--for flutter_local_notifications-->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"

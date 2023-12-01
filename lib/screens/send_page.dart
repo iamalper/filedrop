@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:num_remap/num_remap.dart';
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/files_riverpod.dart';
 import '../classes/discover.dart' as discover_class; //for prevent collusion
 import '../classes/sender.dart';
+import '../classes/workers/worker_interface.dart';
 import '../constants.dart';
 import '../models.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -31,6 +34,10 @@ class SendPageInner extends ConsumerStatefulWidget {
 
 class _SendPageInnerState extends ConsumerState<SendPageInner>
     with TickerProviderStateMixin {
+  final _sender = defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS
+      ? IsolatedSender()
+      : Sender();
   var _uiState = _UiState.scanning;
   List<Device> _ipList = [];
   late AnimationController _uploadAnimC;
@@ -76,7 +83,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
   @override
   void dispose() {
     _uploadAnimC.dispose();
-    Sender.cancel();
+    _sender.cancel();
     super.dispose();
   }
 
@@ -126,7 +133,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
                   title: Text(device.code.toString()),
                   leading: const Icon(Icons.phone_android),
                   onTap: () {
-                    _send(device, _uploadAnimC);
+                    _send(device);
                   },
                 );
               });
@@ -136,12 +143,19 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
     }
   }
 
-  Future<void> _send(Device device, AnimationController uploadAnimC) async {
-    final file = await Sender.filePick();
+  Future<void> _send(Device device) async {
+    final file = await _sender.filePick();
     if (file != null) {
       uiState = _UiState.sending;
       try {
-        await Sender.send(device, file, uploadAnimC: uploadAnimC);
+        _uploadAnimC.animateTo(Assets.uploadAnimStart);
+        await _sender.send(device, file, onUploadProgress: (percent) {
+          final mappedValue = percent.remapAndClamp(
+              0.0, 1.0, Assets.uploadAnimStart, Assets.uploadAnimEnd);
+          assert(mappedValue <= Assets.uploadAnimEnd &&
+              mappedValue >= Assets.uploadAnimStart);
+          _uploadAnimC.animateTo(mappedValue.toDouble());
+        });
         final filesNotifier = ref.read(filesProvider.notifier);
         await filesNotifier.addFiles(file
             .map((e) => DbFile(

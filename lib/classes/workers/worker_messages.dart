@@ -33,3 +33,7 @@ class AllFilesDownloaded implements ReceiverMessage {
   final List<DbFile> files;
   const AllFilesDownloaded(this.files);
 }
+
+class DownloadStarted implements ReceiverMessage {
+  const DownloadStarted();
+}

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
+import 'package:weepy/classes/receiver.dart';
 import 'package:weepy/files_riverpod.dart';
 import 'package:weepy/models.dart';
-import '../classes/worker_interface.dart';
+import '../classes/workers/worker_interface.dart';
 import '../constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -34,20 +36,36 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
     ..addListener(() {
       setState(() {});
     });
-  late final _receiveClass = IsolatedReceiver(
-      onDownloadStart: () => uiStatus = _UiState.downloading,
-      onAllFilesDownloaded: (files) async {
-        await ref.read(filesProvider.notifier).addFiles(files);
-        _files = files;
-        uiStatus = _UiState.complete;
-      },
-      onDownloadError: (e) {
-        errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
-        uiStatus = _UiState.error;
-      },
-      onDownloadUpdatePercent: (percent) {
-        _downloadAnimC.value = percent;
-      });
+  late final _receiver = defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS
+      ? IsolatedReceiver(
+          onDownloadStart: () => uiStatus = _UiState.downloading,
+          onAllFilesDownloaded: (files) async {
+            await ref.read(filesProvider.notifier).addFiles(files);
+            _files = files;
+            uiStatus = _UiState.complete;
+          },
+          onDownloadError: (e) {
+            errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
+            uiStatus = _UiState.error;
+          },
+          onDownloadUpdatePercent: (percent) {
+            _downloadAnimC.value = percent;
+          })
+      : Receiver(
+          onDownloadStart: () => uiStatus = _UiState.downloading,
+          onAllFilesDownloaded: (files) async {
+            await ref.read(filesProvider.notifier).addFiles(files);
+            _files = files;
+            uiStatus = _UiState.complete;
+          },
+          onDownloadError: (e) {
+            errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
+            uiStatus = _UiState.error;
+          },
+          onDownloadUpdatePercent: (percent) {
+            _downloadAnimC.value = percent;
+          });
   late List<DbFile> _files;
   late String errorMessage;
   late int _code;
@@ -67,14 +85,14 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
   set uiStatus(_UiState uiStatus) => setState(() => _uiStatus = uiStatus);
 
   Future<void> _receive() async {
-    _code = await _receiveClass.listen();
+    _code = await _receiver.listen();
     uiStatus = _UiState.listening;
   }
 
   @override
   void dispose() {
     _downloadAnimC.dispose();
-    _receiveClass.stopListening();
+    _receiver.stopListening();
     super.dispose();
   }
 
