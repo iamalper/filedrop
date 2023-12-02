@@ -31,11 +31,8 @@ class ReceivePageInner extends ConsumerStatefulWidget {
 }
 
 class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
-    with TickerProviderStateMixin {
-  late final _downloadAnimC = AnimationController(vsync: this)
-    ..addListener(() {
-      setState(() {});
-    });
+    with SingleTickerProviderStateMixin {
+  late AnimationController _downloadAnimC;
   late final _receiver = defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS
       ? IsolatedReceiver(
@@ -75,6 +72,10 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
 
   @override
   void initState() {
+    _downloadAnimC = AnimationController(vsync: this)
+      ..addListener(() {
+        setState(() {});
+      });
     super.initState();
     _receive();
   }

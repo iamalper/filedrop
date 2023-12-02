@@ -104,9 +104,9 @@ class Receiver {
   ///sends `400 Bad request` as response
   ///
   ///Returns the code generated for discovery. Other devices should select this code for
-  ///connecting to this device
+  ///connecting to this devices
   Future<int> listen() async {
-    if (!saveToTemp) {
+    if (!saveToTemp && false) {
       final permissionStatus = await checkPermission();
       if (!permissionStatus) {
         throw NoStoragePermissionException();
@@ -262,7 +262,7 @@ class Receiver {
   Map<String, dynamic> get map => {
         "useDb": useDb,
         "saveToTemp": saveToTemp,
-        "port": port,
+        if (port != null) "port": port,
         "code": _code,
       };
 

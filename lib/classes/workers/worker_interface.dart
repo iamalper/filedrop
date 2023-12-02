@@ -72,6 +72,7 @@ class IsolatedSender extends Sender {
       AnimationController? uploadAnimC,
       bool useDb = true,
       void Function(double percent)? onUploadProgress}) async {
+    await initalize();
     if (progressNotification) {
       progressNotification = await notifications.initalise();
     }
@@ -89,7 +90,7 @@ class IsolatedSender extends Sender {
           break;
         case final messages.FiledropError e:
           if (progressNotification) {
-            await cancelSend();
+            await cancel();
           }
           throw e.exception;
         default:
@@ -107,8 +108,8 @@ class IsolatedSender extends Sender {
     }
   }
 
-  static Future<void> cancelSend() =>
-      _workManager.cancelByUniqueName(MyTasks.send.name);
+  @override
+  Future<void> cancel() => _workManager.cancelByUniqueName(MyTasks.send.name);
 }
 
 Future<void> initalize() async {
@@ -139,10 +140,11 @@ class IsolatedReceiver extends Receiver {
   ///If called twice, it has no effect.
   @override
   Future<int> listen() async {
+    await initalize();
     if (progressNotification) {
       progressNotification = await notifications.initalise();
     }
-    if (!saveToTemp) {
+    if (!saveToTemp && false) {
       final permissionStatus = await super.checkPermission();
       if (!permissionStatus) {
         throw NoStoragePermissionException();
@@ -154,6 +156,12 @@ class IsolatedReceiver extends Receiver {
     _workManager.registerOneOffTask(MyTasks.receive.name, MyTasks.receive.name,
         inputData: super.map, existingWorkPolicy: ExistingWorkPolicy.keep);
     return super.code;
+  }
+
+  @override
+  Future<void> stopListening() async {
+    await notifications.cancelDownload();
+    await _workManager.cancelByUniqueName(MyTasks.receive.name);
   }
 
   Future<void> _portCallback(message) async {
@@ -189,11 +197,5 @@ class IsolatedReceiver extends Receiver {
         }
         throw Error();
     }
-  }
-
-  ///Stops [Receiver] worker.
-  static Future<void> cancelReceive() async {
-    await notifications.cancelDownload();
-    await _workManager.cancelByUniqueName(MyTasks.receive.name);
   }
 }
