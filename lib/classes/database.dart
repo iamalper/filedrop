@@ -11,16 +11,21 @@ class DatabaseManager {
       databaseFactory = databaseFactoryFfiNoIsolate;
     }
     _initalised = true;
-    return openDatabase(
-      "files.db",
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute(
-            "create table downloaded (ID integer primary key autoincrement, name text not null, path text not null, type text, time int not null)");
-        await db.execute(
-            "create table uploaded (ID integer primary key autoincrement, name text not null, path text not null, type text, time int not null)");
-      },
-    );
+    return openDatabase("files.db", version: 2, onCreate: (db, version) async {
+      await db.execute(
+          "create table downloaded (ID integer primary key autoincrement, name text not null, path text not null, type text, timeEpoch int not null)");
+      await db.execute(
+          "create table uploaded (ID integer primary key autoincrement, name text not null, path text not null, type text, timeEpoch int not null)");
+    }, onUpgrade: (db, oldVersion, newVersion) async {
+      if (oldVersion == 1 && newVersion == 2) {
+        await db
+            .execute("alter table downloaded rename column time to timeEpoch");
+        await db
+            .execute("alter table uploaded rename column time to timeEpoch");
+      } else {
+        throw UnsupportedError("Unsupported db version");
+      }
+    });
   }
 
   ///Insert a uploaded or downloaded file information
@@ -28,12 +33,18 @@ class DatabaseManager {
     final db = await _db;
     switch (file.fileStatus) {
       case DbFileStatus.upload:
-        await db.insert("uploaded",
-            {"name": file.name, "time": file.timeEpoch, "path": file.path});
+        await db.insert("uploaded", {
+          "name": file.name,
+          "timeEpoch": file.timeEpoch,
+          "path": file.path
+        });
         break;
       case DbFileStatus.download:
-        await db.insert("downloaded",
-            {"name": file.name, "time": file.timeEpoch, "path": file.path});
+        await db.insert("downloaded", {
+          "name": file.name,
+          "timeEpoch": file.timeEpoch,
+          "path": file.path
+        });
         break;
     }
   }
@@ -58,12 +69,12 @@ class DatabaseManager {
   ///Get all downloaded/uploaded file information as list.
   Future<List<DbFile>> get files async {
     final db = await _db;
-    final uploadedMaps =
-        await db.query("uploaded", columns: ["name", "type", "time", "path"]);
+    final uploadedMaps = await db
+        .query("uploaded", columns: ["name", "type", "timeEpoch", "path"]);
     final uploadedFiles =
         uploadedMaps.map((e) => DbFile.uploadedFromMap(e)).toList();
-    final downloadedMaps =
-        await db.query("downloaded", columns: ["name", "type", "time", "path"]);
+    final downloadedMaps = await db
+        .query("downloaded", columns: ["name", "type", "timeEpoch", "path"]);
     final downloadedFiles =
         downloadedMaps.map((e) => DbFile.downloadedFromMap(e)).toList();
     List<DbFile> files = [];

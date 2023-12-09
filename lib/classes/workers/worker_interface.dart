@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/animation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/classes/sender.dart';
@@ -23,35 +24,61 @@ final _workManager = Workmanager();
 @pragma("vm:entry-point")
 void _callBack() {
   _workManager.executeTask((taskName, inputData) async {
-    final task =
-        MyTasks.values.singleWhere((element) => element.name == taskName);
-    switch (task) {
-      case MyTasks.receive:
-        final receiverMap = inputData!;
-        final receiver = Receiver(
-            useDb: receiverMap["useDb"],
-            port: receiverMap["port"],
-            saveToTemp: receiverMap["saveToTemp"],
-            code: receiverMap["code"],
-            onDownloadUpdatePercent: (percent) {
-              final sendPort =
-                  IsolateNameServer.lookupPortByName(MyTasks.receive.name);
-              sendPort?.send(messages.UpdatePercent(percent));
-            });
-        await receiver.listen();
-        return true;
-      case MyTasks.send:
-        final senderMap = inputData!;
-        final fileDirs = senderMap["files"] as List<String>;
-        final files = fileDirs.map((e) => File(e));
-        final platformFiles = files.map((e) => PlatformFile(
-            path: e.path, name: basename(e.path), size: e.lengthSync()));
-        final device = Device.fromMap(senderMap);
-        final port = IsolateNameServer.lookupPortByName(MyTasks.send.name);
-        await Sender().send(device, platformFiles,
-            onUploadProgress: (percent) =>
-                port?.send(messages.UpdatePercent(percent)));
-        return true;
+    try {
+      final task =
+          MyTasks.values.singleWhere((element) => element.name == taskName);
+      switch (task) {
+        case MyTasks.receive:
+          SendPort? getReceiverPort() =>
+              IsolateNameServer.lookupPortByName(MyTasks.receive.name);
+          final exitBlock = Completer<bool>();
+          final receiverMap = inputData!;
+          final receiver =
+              Receiver.fromMap(receiverMap, onDownloadUpdatePercent: (percent) {
+            final sendPort = getReceiverPort();
+            sendPort?.send(messages.UpdatePercent(percent).map);
+          }, onDownloadError: (error) {
+            final sendPort = getReceiverPort();
+            if (sendPort != null) {
+              sendPort.send(messages.FiledropError(error).map);
+            } else {
+              exitBlock.completeError(error);
+            }
+          }, onDownloadStart: () {
+            final sendPort = getReceiverPort();
+            sendPort?.send(const messages.DownloadStarted().map);
+          }, onAllFilesDownloaded: (files) {
+            final sendPort = getReceiverPort();
+            sendPort?.send(messages.AllFilesDownloaded(files).map);
+            exitBlock.complete(true);
+          }, onFileDownloaded: (file) {
+            final sendPort = getReceiverPort();
+            sendPort?.send(messages.FileDownloaded(file).map);
+          });
+          await receiver.listen();
+          return exitBlock.future;
+        case MyTasks.send:
+          final senderMap = inputData!;
+          final fileDirs = <String>[];
+          for (var a = 0; senderMap["file$a"] != null; a++) {
+            fileDirs.add(senderMap["file$a"]);
+          }
+          assert(fileDirs.isNotEmpty);
+          final files = fileDirs.map((e) => File(e));
+          final platformFiles = files.map((e) => PlatformFile(
+              path: e.path, name: basename(e.path), size: e.lengthSync()));
+          final device = Device.fromMap(senderMap);
+          SendPort? getSenderPort() =>
+              IsolateNameServer.lookupPortByName(MyTasks.send.name);
+          await Sender().send(device, platformFiles,
+              useDb: senderMap["useDb"],
+              onUploadProgress: (percent) =>
+                  getSenderPort()?.send(messages.UpdatePercent(percent).map));
+          getSenderPort()?.send(const messages.Completed().map);
+          return true;
+      }
+    } on Exception {
+      rethrow;
     }
   });
 }
@@ -77,35 +104,40 @@ class IsolatedSender extends Sender {
       progressNotification = await notifications.initalise();
     }
     final fileDirs = files.map((e) => e.path!);
-    final map = device.map..addAll({"files": fileDirs});
+    final map = device.map;
+    for (var i = 0; i < fileDirs.length; i++) {
+      map["file$i"] = fileDirs.elementAt(i);
+    }
+    map["useDb"] = useDb;
     final port = ReceivePort();
     IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.send.name);
-    final streamSubscription = port.listen((message) async {
-      switch (message as messages.SenderMessage) {
-        case final messages.UpdatePercent e:
+
+    final exitBlock = Completer<void>();
+    port.listen((data) async {
+      switch (messages.MessageType.values[data["type"]]) {
+        case messages.MessageType.updatePercent:
+          final message = messages.UpdatePercent.fromMap(data);
           if (progressNotification) {
-            await notifications.showUpload((e.newPercent * 100).round());
+            await notifications.showUpload((message.newPercent * 100).round());
           }
-          onUploadProgress?.call(e.newPercent);
+          onUploadProgress?.call(message.newPercent);
           break;
-        case final messages.FiledropError e:
-          if (progressNotification) {
-            await cancel();
-          }
-          throw e.exception;
+        case messages.MessageType.completed:
+          final _ = messages.Completed.fromMap(data);
+          exitBlock.complete();
         default:
           throw Error();
       }
     });
-    _workManager.registerOneOffTask(MyTasks.send.name, MyTasks.send.name,
+    await _workManager.registerOneOffTask(MyTasks.send.name, MyTasks.send.name,
         inputData: map);
     if (progressNotification) {
       await notifications.showDownload(0);
     }
-    await streamSubscription.asFuture();
     if (progressNotification) {
       await notifications.cancelDownload();
     }
+    return exitBlock.future;
   }
 
   @override
@@ -113,7 +145,7 @@ class IsolatedSender extends Sender {
 }
 
 Future<void> initalize() async {
-  await _workManager.initialize(_callBack);
+  await _workManager.initialize(_callBack, isInDebugMode: kDebugMode);
 }
 
 class IsolatedReceiver extends Receiver {
@@ -144,7 +176,7 @@ class IsolatedReceiver extends Receiver {
     if (progressNotification) {
       progressNotification = await notifications.initalise();
     }
-    if (!saveToTemp && false) {
+    if (!saveToTemp) {
       final permissionStatus = await super.checkPermission();
       if (!permissionStatus) {
         throw NoStoragePermissionException();
@@ -153,48 +185,52 @@ class IsolatedReceiver extends Receiver {
     final port = ReceivePort();
     IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.receive.name);
     port.listen(_portCallback);
-    _workManager.registerOneOffTask(MyTasks.receive.name, MyTasks.receive.name,
+    await _workManager.registerOneOffTask(
+        MyTasks.receive.name, MyTasks.receive.name,
         inputData: super.map, existingWorkPolicy: ExistingWorkPolicy.keep);
     return super.code;
   }
 
   @override
   Future<void> stopListening() async {
-    await notifications.cancelDownload();
+    if (progressNotification) {
+      await notifications.cancelDownload();
+    }
     await _workManager.cancelByUniqueName(MyTasks.receive.name);
   }
 
-  Future<void> _portCallback(message) async {
-    switch (message as messages.ReceiverMessage) {
-      case final messages.UpdatePercent e:
+  Future<void> _portCallback(data) async {
+    final type = messages.MessageType.values[data["type"]];
+    switch (type) {
+      case messages.MessageType.updatePercent:
+        final message = messages.UpdatePercent.fromMap(data);
         if (progressNotification) {
-          await notifications.showDownload((e.newPercent * 100).round());
+          await notifications.showDownload((message.newPercent * 100).round());
         }
-        super.onDownloadUpdatePercent?.call(e.newPercent);
+        super.onDownloadUpdatePercent?.call(message.newPercent);
         break;
-      case final messages.FiledropError e:
+      case messages.MessageType.filedropError:
+        final message = messages.FiledropError.fromMap(data);
         if (progressNotification) {
           await notifications.cancelDownload();
         }
-        super.onDownloadError?.call(e.exception);
+        super.onDownloadError?.call(message.exception);
         break;
-      case final messages.FileDownloaded e:
-        super.onFileDownloaded?.call(e.file);
+      case messages.MessageType.fileDownloaded:
+        final message = messages.FileDownloaded.fromMap(data);
+        super.onFileDownloaded?.call(message.file);
         break;
-      case final messages.AllFilesDownloaded e:
+      case messages.MessageType.allFilesDownloaded:
+        final message = messages.AllFilesDownloaded.fromMap(data);
         if (progressNotification) {
           await notifications.cancelDownload();
         }
-        super.onAllFilesDownloaded?.call(e.files);
-      case final messages.DownloadStarted _:
-        if (progressNotification) {
-          await notifications.showDownload(0);
-        }
+        super.onAllFilesDownloaded?.call(message.files.toList());
+        break;
+      case messages.MessageType.downloadStarted:
+        final _ = messages.DownloadStarted.fromMap(data);
         super.onDownloadStart?.call();
       default:
-        if (progressNotification) {
-          await notifications.cancelDownload();
-        }
         throw Error();
     }
   }

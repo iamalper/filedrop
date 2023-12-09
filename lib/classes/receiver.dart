@@ -24,10 +24,9 @@ class Receiver {
   final _files = <DbFile>[];
   late MediaStore _ms;
   final _tempDir = getTemporaryDirectory();
-  final int _code;
+  final int code;
   HttpServer? _server;
   bool _isBusy = false;
-  int get code => _code;
 
   ///If [useDb] is `true`, file informations will be saved to sqflite database.
   ///Don't needed to open the database manually.
@@ -63,7 +62,7 @@ class Receiver {
   ///[onDownloadError] will be called when error happened while saving file.
   ///
   ///When [onDownloadError] called, no other callback will be called,
-  ///no exception thrown and server will wait new connection.
+  ///no exception thrown and server will wait for new connection.
   ///
   ///See [FileDropException]
   final void Function(FileDropException error)? onDownloadError;
@@ -84,16 +83,22 @@ class Receiver {
     this.onAllFilesDownloaded,
     this.onDownloadError,
     int? code,
-  }) : _code = code ?? Random().nextInt(8888) + 1111;
+  }) : code = code ?? Random().nextInt(8888) + 1111;
 
   ///Get storage permission for Android and IOS
   ///
   ///For other platforms always returns [true]
   Future<bool> checkPermission() async {
+    //These platforms needs storage permissions (only tested on Android)
     if (Platform.isAndroid || Platform.isIOS) {
-      //These platforms needs storage permissions (only tested on Android)
-      final perm = await Permission.storage.request();
-      return perm.isGranted;
+      final newPermission =
+          await _ms.requestForAccess(initialRelativePath: null);
+      if (newPermission == null) {
+        final perm = await Permission.storage.request();
+        return perm.isGranted;
+      } else {
+        return true;
+      }
     } else {
       return true;
     }
@@ -104,9 +109,9 @@ class Receiver {
   ///sends `400 Bad request` as response
   ///
   ///Returns the code generated for discovery. Other devices should select this code for
-  ///connecting to this devices
+  ///connecting to [Receiver]
   Future<int> listen() async {
-    if (!saveToTemp && false) {
+    if (!saveToTemp) {
       final permissionStatus = await checkPermission();
       if (!permissionStatus) {
         throw NoStoragePermissionException();
@@ -133,10 +138,10 @@ class Receiver {
       }
     }
     if (_server != null) {
-      log("Listening for new file with port: ${_server!.port}, code: $_code",
+      log("Listening for new file with port: ${_server!.port}, code: $code",
           name: "Receive");
     }
-    return _code;
+    return code;
   }
 
   Future<Response> _requestMethod(Request request) async {
@@ -147,10 +152,10 @@ class Receiver {
     }
     if (request.method == "GET") {
       //Response to discovery requests
-      log("Discovery request recieved, returned code $_code",
+      log("Discovery request recieved, returned code $code",
           name: "Receive server");
       return Response.ok(
-          jsonEncode({"message": Constants.meeting, "code": _code}));
+          jsonEncode({"message": Constants.meeting, "code": code}));
     } else if (request.method == "POST") {
       //Reciving file
       log("Reciving file...", name: "Receive server");
@@ -224,8 +229,8 @@ class Receiver {
         }
         log("Recived file(s) $_files", name: "Receive server");
         return Response.ok(null);
-      } catch (_) {
-        log("Download error", name: "Receiver");
+      } catch (e) {
+        log("Download error", name: "Receiver", error: e);
         onDownloadError?.call(ConnectionLostException());
         return Response.badRequest();
       } finally {
@@ -262,14 +267,19 @@ class Receiver {
   Map<String, dynamic> get map => {
         "useDb": useDb,
         "saveToTemp": saveToTemp,
-        if (port != null) "port": port,
-        "code": _code,
+        if (port != null) "port": port!,
+        "code": code,
       };
 
-  Receiver.fromMap(Map<String, dynamic> map)
-      : this(
-            useDb: map["useDb"],
-            saveToTemp: map["saveToTemp"],
-            port: map["port"],
-            code: map["code"]);
+  Receiver.fromMap(Map<String, dynamic> map,
+      {this.onAllFilesDownloaded,
+      this.downloadAnimC,
+      this.onDownloadError,
+      this.onDownloadStart,
+      this.onFileDownloaded,
+      this.onDownloadUpdatePercent})
+      : useDb = map["useDb"],
+        saveToTemp = map["saveToTemp"],
+        port = map["port"],
+        code = map["code"];
 }

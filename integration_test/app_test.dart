@@ -17,9 +17,7 @@ void main() {
   var sendingFiles = <File>[];
   var platformFiles = <PlatformFile>[];
   late Directory subdir;
-  late Sender sender;
   setUpAll(() async {
-    sender = Sender();
     final tempDir = await getTemporaryDirectory();
     subdir = tempDir.createTempSync("sending");
     final testImageData = await rootBundle.load("assets/test_image.png");
@@ -47,28 +45,32 @@ void main() {
   });
   group('IO tests', () {
     var downloadedFiles = <DbFile>[];
-    final recieve = Receiver(
-        saveToTemp: true,
-        useDb: false,
-        onAllFilesDownloaded: (files) => downloadedFiles = files);
-
-    testWidgets('Discover, send and receive files', (_) async {
-      final code = await recieve.listen();
-      var allDevices = <Device>[];
-      while (allDevices.isEmpty) {
-        allDevices = await Discover.discover();
-      }
-      final devices = allDevices.where((device) => device.code == code);
-      expect(devices, isNotEmpty, reason: "Expected to discover itself");
-      await sender.send(devices.first, platformFiles, useDb: false);
-      for (var i = 0; i < sendingFiles.length; i++) {
-        final gidenDosya = sendingFiles[i];
-        final gelenDosya = File(downloadedFiles[i].path);
-        expect(
-            gidenDosya.readAsBytesSync(), equals(gelenDosya.readAsBytesSync()),
-            reason: "All sent files expected to has same content as originals");
-      }
-    });
+    Receiver? receiver;
+    testWidgets(
+      'Discover, send and receive files',
+      (_) async {
+        receiver = Receiver(
+            saveToTemp: true,
+            useDb: false,
+            onAllFilesDownloaded: (files) => downloadedFiles = files);
+        final code = await receiver!.listen();
+        var allDevices = <Device>[];
+        while (allDevices.isEmpty) {
+          allDevices = await Discover.discover();
+        }
+        final devices = allDevices.where((device) => device.code == code);
+        expect(devices, isNotEmpty, reason: "Expected to discover itself");
+        await Sender().send(devices.first, platformFiles, useDb: false);
+        for (var i = 0; i < sendingFiles.length; i++) {
+          final gidenDosya = sendingFiles[i];
+          final gelenDosya = File(downloadedFiles[i].path);
+          expect(gidenDosya.readAsBytesSync(),
+              equals(gelenDosya.readAsBytesSync()),
+              reason:
+                  "All sent files expected to has same content as originals");
+        }
+      },
+    );
 
     tearDown(() {
       for (var file in downloadedFiles) {
@@ -77,7 +79,7 @@ void main() {
       downloadedFiles = [];
     });
     tearDownAll(() async {
-      await recieve.stopListening();
+      await receiver?.stopListening();
     });
   });
 
@@ -85,7 +87,7 @@ void main() {
     testWidgets("Handle no_receiver error", (_) async {
       final rand1 = Random().nextInt(30);
       final rand2 = Random().nextInt(30);
-      final sendFuture = sender.send(
+      final sendFuture = Sender().send(
           Device(adress: "192.168.$rand1.$rand2", code: 1000, port: 2326),
           platformFiles,
           useDb: false);
@@ -93,6 +95,7 @@ void main() {
     }, retry: 2);
     testWidgets("Handle connection lost while reciving", (_) async {
       FileDropException? throwedError;
+      final sender = Sender();
       final code = await Receiver(
               onDownloadError: (error) => throwedError = error,
               useDb: false,

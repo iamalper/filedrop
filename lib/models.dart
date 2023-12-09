@@ -44,7 +44,13 @@ class DbFile {
   DbFile.downloadedFromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.download,
-        time = DateTime.fromMillisecondsSinceEpoch(map["time"]),
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeEpoch"]),
+        path = map["path"];
+
+  DbFile.fromMap(Map<String, dynamic> map)
+      : name = map["name"],
+        fileStatus = DbFileStatus.values[map["fileStatus"]],
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeEpoch"]),
         path = map["path"];
 
   ///Icon for showing in UI.
@@ -71,6 +77,13 @@ class DbFile {
   @override
   String toString() =>
       "dbFile{name: $name, time: $time, fileStatus: ${fileStatus.name}}";
+
+  Map<String, dynamic> get map => {
+        "name": name,
+        "path": path,
+        "timeEpoch": timeEpoch,
+        "fileStatus": fileStatus.index
+      };
 }
 
 class Device {
