@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:weepy/classes/receiver.dart';
 import 'package:weepy/files_riverpod.dart';
 import 'package:weepy/models.dart';
+import '../classes/exceptions.dart';
 import '../classes/workers/worker_interface.dart';
 import '../constants.dart';
 import 'package:flutter/material.dart';
@@ -86,6 +87,10 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
   set uiStatus(_UiState uiStatus) => setState(() => _uiStatus = uiStatus);
 
   Future<void> _receive() async {
+    final permissionStatus = await _receiver.checkPermission();
+    if (!permissionStatus) {
+      throw NoStoragePermissionException();
+    }
     _code = await _receiver.listen();
     uiStatus = _UiState.listening;
   }

@@ -110,14 +110,8 @@ class Receiver {
   ///Returns the code generated for discovery. Other devices should select this code for
   ///connecting to [Receiver]
   Future<int> listen() async {
-    if (!saveToTemp) {
-      final permissionStatus = await checkPermission();
-      if (!permissionStatus) {
-        throw NoStoragePermissionException();
-      }
-      if (Platform.isAndroid) {
-        MediaStore.appFolder = Constants.saveFolder;
-      }
+    if (Platform.isAndroid) {
+      MediaStore.appFolder = Constants.saveFolder;
     }
     _isBusy = false;
 
