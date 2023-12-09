@@ -22,7 +22,7 @@ import '../constants.dart';
 ///Available methods are [listen] and [stopListening]
 class Receiver {
   final _files = <DbFile>[];
-  final _ms = MediaStore();
+  late final _ms = MediaStore();
   final _tempDir = getTemporaryDirectory();
   final int code;
   HttpServer? _server;
