@@ -37,7 +37,7 @@ class DbFile {
   DbFile.uploadedFromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.upload,
-        time = DateTime.fromMillisecondsSinceEpoch(map["time"]),
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeEpoch"]),
         path = map["path"];
 
   ///Use this constructor for load an downloaded file infos from database.
