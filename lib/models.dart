@@ -37,20 +37,20 @@ class DbFile {
   DbFile.uploadedFromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.upload,
-        time = DateTime.fromMillisecondsSinceEpoch(map["timeEpoch"]),
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeepoch"]),
         path = map["path"];
 
   ///Use this constructor for load an downloaded file infos from database.
   DbFile.downloadedFromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.download,
-        time = DateTime.fromMillisecondsSinceEpoch(map["timeEpoch"]),
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeepoch"]),
         path = map["path"];
 
   DbFile.fromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.values[map["fileStatus"]],
-        time = DateTime.fromMillisecondsSinceEpoch(map["timeEpoch"]),
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeepoch"]),
         path = map["path"];
 
   ///Icon for showing in UI.
@@ -81,7 +81,7 @@ class DbFile {
   Map<String, dynamic> get map => {
         "name": name,
         "path": path,
-        "timeEpoch": timeEpoch,
+        "timeepoch": timeEpoch,
         "fileStatus": fileStatus.index
       };
 }

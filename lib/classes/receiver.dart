@@ -22,7 +22,7 @@ import '../constants.dart';
 ///Available methods are [listen] and [stopListening]
 class Receiver {
   final _files = <DbFile>[];
-  late MediaStore _ms;
+  final _ms = MediaStore();
   final _tempDir = getTemporaryDirectory();
   final int code;
   HttpServer? _server;
@@ -89,16 +89,15 @@ class Receiver {
   ///
   ///For other platforms always returns [true]
   Future<bool> checkPermission() async {
-    //These platforms needs storage permissions (only tested on Android)
-    if (Platform.isAndroid || Platform.isIOS) {
-      final newPermission =
-          await _ms.requestForAccess(initialRelativePath: null);
-      if (newPermission == null) {
-        final perm = await Permission.storage.request();
-        return perm.isGranted;
-      } else {
-        return true;
-      }
+    //For Android we need storage permissions
+    if (Platform.isAndroid) {
+      MediaStore.appFolder = Constants.saveFolder;
+      final sdkVersion = await _ms.getPlatformSDKInt();
+      //For android sdk 33+ get permission for MediaStore
+      final perm = sdkVersion >= 33
+          ? (await _ms.requestForAccess(initialRelativePath: null)) != null
+          : (await Permission.storage.request()).isGranted;
+      return perm;
     } else {
       return true;
     }
@@ -117,7 +116,6 @@ class Receiver {
         throw NoStoragePermissionException();
       }
       if (Platform.isAndroid) {
-        _ms = MediaStore();
         MediaStore.appFolder = Constants.saveFolder;
       }
     }
