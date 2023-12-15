@@ -37,14 +37,20 @@ class DbFile {
   DbFile.uploadedFromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.upload,
-        time = DateTime.fromMillisecondsSinceEpoch(map["time"]),
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeepoch"]),
         path = map["path"];
 
   ///Use this constructor for load an downloaded file infos from database.
   DbFile.downloadedFromMap(Map<String, dynamic> map)
       : name = map["name"],
         fileStatus = DbFileStatus.download,
-        time = DateTime.fromMillisecondsSinceEpoch(map["time"]),
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeepoch"]),
+        path = map["path"];
+
+  DbFile.fromMap(Map<String, dynamic> map)
+      : name = map["name"],
+        fileStatus = DbFileStatus.values[map["fileStatus"]],
+        time = DateTime.fromMillisecondsSinceEpoch(map["timeepoch"]),
         path = map["path"];
 
   ///Icon for showing in UI.
@@ -71,6 +77,25 @@ class DbFile {
   @override
   String toString() =>
       "dbFile{name: $name, time: $time, fileStatus: ${fileStatus.name}}";
+
+  Map<String, dynamic> get map => {
+        "name": name,
+        "path": path,
+        "timeepoch": timeEpoch,
+        "fileStatus": fileStatus.index
+      };
+  @override
+  int get hashCode =>
+      path.hashCode ^ timeEpoch.hashCode ^ fileStatus.index.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is DbFile) {
+      return other.hashCode == hashCode;
+    } else {
+      return false;
+    }
+  }
 }
 
 class Device {
@@ -104,6 +129,14 @@ class Device {
       throw "ip error";
     }
   }
+
+  Map<String, dynamic> get map =>
+      {"adress": adress, "code": code, "port": port};
+
+  Device.fromMap(Map<String, dynamic> map)
+      : adress = map["adress"],
+        code = map["code"],
+        port = map["port"];
 
   ///deviceModel{Adress: [adress], Code: [code], Port: [port]}
   @override

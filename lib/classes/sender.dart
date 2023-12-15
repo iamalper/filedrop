@@ -14,19 +14,18 @@ import 'package:http/http.dart' as http;
 ///
 ///Available methods are [filePick] and [send]
 class Sender {
-  static final _dio = Dio();
-  static final _senderCancelToken = CancelToken();
+  final _dio = Dio();
+  final _senderCancelToken = CancelToken();
 
   ///Pick files which are about to send.
   ///
   ///You should pass them to [send] method.
-  static Future<List<PlatformFile>?> filePick() async {
+  Future<List<PlatformFile>?> filePick() async {
     final result = await FilePicker.platform.pickFiles(allowMultiple: true);
-
     return result?.files;
   }
 
-  static void cancel() {
+  void cancel() {
     log("Request cancelled", name: "Sender");
     _senderCancelToken.cancel();
   }
@@ -35,14 +34,17 @@ class Sender {
   ///
   ///[files] will send to [device]
   ///
-  ///If [uploadAnimC] is set, progess will be sent to it.
+  ///If [uploadAnimC] or [onUploadProgress] is set, progess will be sent to it.
   ///
   ///If [useDb] is `true`, file informations will be saved to sqflite database.
   ///Must set to `false` for prevent database usage.
   ///
   ///Throws [OtherDeviceBusyException] if other device is busy.
-  static Future<void> send(Device device, List<PlatformFile> files,
-      {AnimationController? uploadAnimC, bool useDb = true}) async {
+  Future<void> send(Device device, Iterable<PlatformFile> files,
+      {@Deprecated("Prefer onUploadProgress() instead")
+      AnimationController? uploadAnimC,
+      bool useDb = true,
+      void Function(double percent)? onUploadProgress}) async {
     final multiPartFiles = await Future.wait(files.map((e) async {
       final readStream = e.readStream;
       if (readStream == null) {
@@ -75,6 +77,7 @@ class Sender {
         assert(mappedValue <= Assets.uploadAnimEnd &&
             mappedValue >= Assets.uploadAnimStart);
         uploadAnimC?.animateTo(mappedValue.toDouble());
+        onUploadProgress?.call(newValue);
       }));
       uploadAnimC?.animateTo(1.0);
     } on DioException catch (e) {

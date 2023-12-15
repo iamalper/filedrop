@@ -29,9 +29,16 @@ class Constants {
   static const meeting = "WEEPY";
 }
 
-class WidgetKeys {
-  static const sendButton = Key("send button");
-  static const receiveButton = Key("recieve button");
+///[WidgetKeys] will used for widget tests and integration tests.
+///
+///[key] should be passed to Widget's key parameter.
+enum WidgetKeys {
+  sendButton("sendButton"),
+  receiveButton("receiveButton");
+
+  Key get key => Key(keyString);
+  final String keyString;
+  const WidgetKeys(this.keyString);
 }
 
 class Appbars {

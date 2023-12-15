@@ -1,26 +1,50 @@
 import 'dart:io';
 
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models.dart';
 
 class DatabaseManager {
   bool _initalised = false;
-  Future<Database> get _db {
+  Future<Database> get _db async {
     if (!_initalised && (Platform.isLinux || Platform.isWindows)) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfiNoIsolate;
     }
+    final db = await openDatabase("files.db", version: 2,
+        onCreate: (db, version) async {
+      await db.execute(
+          "create table downloaded (ID integer primary key autoincrement, name text not null, path text not null, type text, timeepoch int not null)");
+      await db.execute(
+          "create table uploaded (ID integer primary key autoincrement, name text not null, path text not null, type text, timeepoch int not null)");
+    }, onUpgrade: (db, oldVersion, newVersion) async {
+      if (oldVersion == 1 && newVersion == 2) {
+        try {
+          await db.execute(
+              "alter table downloaded rename column time to timeepoch");
+          await db
+              .execute("alter table uploaded rename column time to timeepoch");
+        } on Exception catch (e) {
+          //Some old android devices does not support 'alert table'
+          //
+          //Workaround: Dropping table then recreating table
+          //since database contains only file history that would not be a problem
+          await FirebaseCrashlytics.instance.recordError(e, null,
+              reason:
+                  "Database version update $oldVersion to $newVersion failed.");
+          await db.execute("drop table IF EXISTS downloaded");
+          await db.execute("drop table IF EXISTS uploaded");
+          await db.execute(
+              "create table downloaded (ID integer primary key autoincrement, name text not null, path text not null, type text, timeepoch int not null)");
+          await db.execute(
+              "create table uploaded (ID integer primary key autoincrement, name text not null, path text not null, type text, timeepoch int not null)");
+        }
+      } else {
+        throw UnsupportedError("Unsupported db version");
+      }
+    });
     _initalised = true;
-    return openDatabase(
-      "files.db",
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute(
-            "create table downloaded (ID integer primary key autoincrement, name text not null, path text not null, type text, time int not null)");
-        await db.execute(
-            "create table uploaded (ID integer primary key autoincrement, name text not null, path text not null, type text, time int not null)");
-      },
-    );
+    return db;
   }
 
   ///Insert a uploaded or downloaded file information
@@ -28,12 +52,18 @@ class DatabaseManager {
     final db = await _db;
     switch (file.fileStatus) {
       case DbFileStatus.upload:
-        await db.insert("uploaded",
-            {"name": file.name, "time": file.timeEpoch, "path": file.path});
+        await db.insert("uploaded", {
+          "name": file.name,
+          "timeepoch": file.timeEpoch,
+          "path": file.path
+        });
         break;
       case DbFileStatus.download:
-        await db.insert("downloaded",
-            {"name": file.name, "time": file.timeEpoch, "path": file.path});
+        await db.insert("downloaded", {
+          "name": file.name,
+          "timeepoch": file.timeEpoch,
+          "path": file.path
+        });
         break;
     }
   }
@@ -58,12 +88,12 @@ class DatabaseManager {
   ///Get all downloaded/uploaded file information as list.
   Future<List<DbFile>> get files async {
     final db = await _db;
-    final uploadedMaps =
-        await db.query("uploaded", columns: ["name", "type", "time", "path"]);
+    final uploadedMaps = await db
+        .query("uploaded", columns: ["name", "type", "timeepoch", "path"]);
     final uploadedFiles =
         uploadedMaps.map((e) => DbFile.uploadedFromMap(e)).toList();
-    final downloadedMaps =
-        await db.query("downloaded", columns: ["name", "type", "time", "path"]);
+    final downloadedMaps = await db
+        .query("downloaded", columns: ["name", "type", "timeepoch", "path"]);
     final downloadedFiles =
         downloadedMaps.map((e) => DbFile.downloadedFromMap(e)).toList();
     List<DbFile> files = [];

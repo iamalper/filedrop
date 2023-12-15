@@ -29,8 +29,7 @@ class IpException implements FileDropException {
   ///
   ///Use [getErrorMessage] for localised error message.
   ///
-  ///Usually throws when don't connected to a network.
-
+  ///Usually throws when didn't connected to a network.
   IpException();
   @override
   String getErrorMessage(AppLocalizations appLocalizations) =>

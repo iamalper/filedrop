@@ -16,16 +16,15 @@ import 'package:weepy/classes/exceptions.dart';
 import 'database.dart';
 import '../models.dart';
 import '../constants.dart';
-import 'discover.dart';
 
 ///Class for all Recieve jobs
 ///
 ///Available methods are [listen] and [stopListening]
 class Receiver {
   final _files = <DbFile>[];
-  late MediaStore _ms;
+  late final _ms = MediaStore();
   final _tempDir = getTemporaryDirectory();
-  late int _code;
+  final int code;
   HttpServer? _server;
   bool _isBusy = false;
 
@@ -38,7 +37,14 @@ class Receiver {
   final bool saveToTemp;
 
   ///If [downloadAnimC] is set, progress will be sent to it.
+  @Deprecated(
+      "Prefer downloadUpdatePercent() because it allows updating UI from isolates")
   final AnimationController? downloadAnimC;
+
+  ///[onDownloadUpdatePercent] will be called for each saved chunk in download operation.
+  ///
+  ///Use for animating progress.
+  final void Function(double percent)? onDownloadUpdatePercent;
 
   ///[port] listened for incoming connections. Should not set except testing or
   ///other devices will require manual port setting.
@@ -56,50 +62,64 @@ class Receiver {
   ///[onDownloadError] will be called when error happened while saving file.
   ///
   ///When [onDownloadError] called, no other callback will be called,
-  ///no exception thrown and server will wait new connection.
+  ///no exception thrown and server will wait for new connection.
   ///
   ///See [FileDropException]
   final void Function(FileDropException error)? onDownloadError;
 
   ///Listen and receive files from other devices.
   ///
-  ///Set [downloadAnimC], [onDownloadStart], [onFileDownloaded], [onAllFilesDownloaded] for animating download progess.
+  ///Set [onDownloadUpdatePercent], [onDownloadStart], [onFileDownloaded], [onAllFilesDownloaded] for animating download progess.
   ///
   ///Call [listen] for start listening.
-  Receiver(
-      {this.downloadAnimC,
-      this.useDb = true,
-      this.saveToTemp = false,
-      this.port,
-      this.onDownloadStart,
-      this.onFileDownloaded,
-      this.onAllFilesDownloaded,
-      this.onDownloadError});
+  Receiver({
+    this.downloadAnimC,
+    this.onDownloadUpdatePercent,
+    this.useDb = true,
+    this.saveToTemp = false,
+    this.port,
+    this.onDownloadStart,
+    this.onFileDownloaded,
+    this.onAllFilesDownloaded,
+    this.onDownloadError,
+    int? code,
+  }) : code = code ?? Random().nextInt(8888) + 1111;
+
+  ///Get storage permission for Android and IOS
+  ///
+  ///For other platforms always returns [true]
+  Future<bool> checkPermission() async {
+    //For Android we need storage permissions
+    if (Platform.isAndroid) {
+      MediaStore.appFolder = Constants.saveFolder;
+      final sdkVersion = await _ms.getPlatformSDKInt();
+      //For android sdk 33+ get permission for MediaStore
+      final perm = sdkVersion >= 33
+          ? (await _ms.requestForAccess(initialRelativePath: null)) != null
+          : (await Permission.storage.request()).isGranted;
+      return perm;
+    } else {
+      return true;
+    }
+  }
 
   ///Starts listening for discovery and recieving file(s).
   ///Handles one connection at once. If another device tires to match,
   ///sends `400 Bad request` as response
   ///
   ///Returns the code generated for discovery. Other devices should select this code for
-  ///connecting to this device
+  ///connecting to [Receiver]
   Future<int> listen() async {
-    if (!saveToTemp && (Platform.isAndroid || Platform.isIOS)) {
-      //These platforms needs storage permissions (only tested on Android)
-      final perm = await Permission.storage.request();
-      if (!perm.isGranted) throw NoStoragePermissionException();
-      _ms = MediaStore();
+    if (Platform.isAndroid) {
       MediaStore.appFolder = Constants.saveFolder;
     }
-
-    final ip = await Discover.getMyIp();
-    _code = Random().nextInt(8888) + 1111;
-
     _isBusy = false;
 
     for (var port = Constants.minPort; port <= Constants.maxPort; port++) {
       try {
-        _server =
-            await shelf.serve(_requestMethod, ip, port, poweredByHeader: null);
+        _server = await shelf.serve(
+            _requestMethod, InternetAddress.anyIPv4, port,
+            poweredByHeader: null);
         break;
       } on SocketException catch (_) {
         if (port < Constants.maxPort) {
@@ -109,9 +129,11 @@ class Receiver {
         }
       }
     }
-    log("Listening for new file with port: ${_server!.port}, code: $_code",
-        name: "Receive");
-    return _code;
+    if (_server != null) {
+      log("Listening for new file with port: ${_server!.port}, code: $code",
+          name: "Receive");
+    }
+    return code;
   }
 
   Future<Response> _requestMethod(Request request) async {
@@ -122,10 +144,10 @@ class Receiver {
     }
     if (request.method == "GET") {
       //Response to discovery requests
-      log("Discovery request recieved, returned code $_code",
+      log("Discovery request recieved, returned code $code",
           name: "Receive server");
       return Response.ok(
-          jsonEncode({"message": Constants.meeting, "code": _code}));
+          jsonEncode({"message": Constants.meeting, "code": code}));
     } else if (request.method == "POST") {
       //Reciving file
       log("Reciving file...", name: "Receive server");
@@ -158,9 +180,12 @@ class Receiver {
           }
           final totalLengh = request.contentLength!;
           final fileWriter = file.openWrite();
+          var downloadPercent = 0.0;
           await for (var bytes in mime.timeout(const Duration(seconds: 10))) {
             fileWriter.add(bytes);
-            downloadAnimC?.value += bytes.length / totalLengh;
+            downloadPercent += bytes.length / totalLengh;
+            downloadAnimC?.value = downloadPercent;
+            onDownloadUpdatePercent?.call(downloadPercent);
           }
           await fileWriter.flush();
           await fileWriter.close();
@@ -196,8 +221,8 @@ class Receiver {
         }
         log("Recived file(s) $_files", name: "Receive server");
         return Response.ok(null);
-      } catch (_) {
-        log("Download error", name: "Receiver");
+      } catch (e) {
+        log("Download error", name: "Receiver", error: e);
         onDownloadError?.call(ConnectionLostException());
         return Response.badRequest();
       } finally {
@@ -229,5 +254,24 @@ class Receiver {
   ///Closes the listening server.
   ///
   ///Is is safe to call before [listen] or after [listen] .
-  Future<void>? stopListening() => _server?.close();
+  Future<void> stopListening() async => await _server?.close();
+
+  Map<String, dynamic> get map => {
+        "useDb": useDb,
+        "saveToTemp": saveToTemp,
+        if (port != null) "port": port!,
+        "code": code,
+      };
+
+  Receiver.fromMap(Map<String, dynamic> map,
+      {this.onAllFilesDownloaded,
+      this.downloadAnimC,
+      this.onDownloadError,
+      this.onDownloadStart,
+      this.onFileDownloaded,
+      this.onDownloadUpdatePercent})
+      : useDb = map["useDb"],
+        saveToTemp = map["saveToTemp"],
+        port = map["port"],
+        code = map["code"];
 }

@@ -4,11 +4,11 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.19.6 <3.0.0'
+  sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
   network_discovery: ^1.0.0
-  file_picker: ^5.3.0
+  file_picker: ^6.1.1
   flutter:
     sdk: flutter
   http_parser: ^4.0.2
@@ -16,7 +16,7 @@ dependencies:
   mime: ^1.0.4
   path: ^1.8.2
   path_provider: ^2.0.15
-  permission_handler: ^10.2.0
+  permission_handler: ^11.1.0
   shelf: ^1.4.1
   sqflite: ^2.2.8+4
   sqflite_common_ffi: ^2.2.5
@@ -39,25 +39,23 @@ dependencies:
   flutter_riverpod: ^2.4.0
   cupertino_icons: ^1.0.6
   num_remap: ^1.0.1
+  workmanager: ^0.5.2
+  flutter_local_notifications: ^16.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
   plugin_platform_interface: ^2.1.5
   path_provider_platform_interface: ^2.1.0
   custom_lint: ^0.5.3
   riverpod_lint: ^2.0.4
-  msix: ^3.16.1
 
 flutter:
   uses-material-design: true
   generate: true
   assets:
     - "assets/lottie/"
-
-msix_config:
-  display_name: FileDrop
-  msix_version: 1.0.0.0
-  app_installer:
-    publish_folder_path: c:\path\to\myPublishFolder
+    - "assets/test_image.png"

@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
+import 'package:weepy/classes/receiver.dart';
 import 'package:weepy/files_riverpod.dart';
 import 'package:weepy/models.dart';
-
 import '../classes/exceptions.dart';
+import '../classes/workers/worker_interface.dart';
 import '../constants.dart';
 import 'package:flutter/material.dart';
-import '../classes/receiver.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,58 +32,73 @@ class ReceivePageInner extends ConsumerStatefulWidget {
 }
 
 class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   late AnimationController _downloadAnimC;
-  late Receiver _receiveClass;
-  late int _code;
+  late final _receiver = defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS
+      ? IsolatedReceiver(
+          onDownloadStart: () => uiStatus = _UiState.downloading,
+          onAllFilesDownloaded: (files) async {
+            await ref.read(filesProvider.notifier).addFiles(files);
+            _files = files;
+            uiStatus = _UiState.complete;
+          },
+          onDownloadError: (e) {
+            errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
+            uiStatus = _UiState.error;
+          },
+          onDownloadUpdatePercent: (percent) {
+            _downloadAnimC.value = percent;
+          })
+      : Receiver(
+          onDownloadStart: () => uiStatus = _UiState.downloading,
+          onAllFilesDownloaded: (files) async {
+            await ref.read(filesProvider.notifier).addFiles(files);
+            _files = files;
+            uiStatus = _UiState.complete;
+          },
+          onDownloadError: (e) {
+            errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
+            uiStatus = _UiState.error;
+          },
+          onDownloadUpdatePercent: (percent) {
+            _downloadAnimC.value = percent;
+          });
   late List<DbFile> _files;
   late String errorMessage;
+  late int _code;
 
   ///Use [uiStatus] setter for updating state without [setState]
   var _uiStatus = _UiState.loading;
+
+  @override
+  void initState() {
+    _downloadAnimC = AnimationController(vsync: this)
+      ..addListener(() {
+        setState(() {});
+      });
+    super.initState();
+    _receive();
+  }
 
   ///Setter for ui state.
   ///
   ///Don't need warp with [setState].
   set uiStatus(_UiState uiStatus) => setState(() => _uiStatus = uiStatus);
-  @override
-  initState() {
-    _downloadAnimC = AnimationController(vsync: this)
-      ..addListener(() {
-        setState(() {});
-      });
-    _receiveClass = Receiver(
-        downloadAnimC: _downloadAnimC,
-        onDownloadStart: () => uiStatus = _UiState.downloading,
-        onAllFilesDownloaded: (files) async {
-          await ref.read(filesProvider.notifier).addFiles(files);
-          _files = files;
-          uiStatus = _UiState.complete;
-        },
-        onDownloadError: (e) {
-          errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
-          uiStatus = _UiState.error;
-        });
-    _receive();
-    super.initState();
-  }
 
   Future<void> _receive() async {
-    try {
-      _code = await _receiveClass.listen();
-      uiStatus = _UiState.listening;
-    } on FileDropException catch (err) {
-      if (context.mounted) {
-        errorMessage = err.getErrorMessage(AppLocalizations.of(context)!);
-        uiStatus = _UiState.error;
-      }
+    final permissionStatus = await _receiver.checkPermission();
+    if (!permissionStatus) {
+      throw NoStoragePermissionException();
     }
+    _code = await _receiver.listen();
+    uiStatus = _UiState.listening;
   }
 
   @override
   void dispose() {
     _downloadAnimC.dispose();
-    _receiveClass.stopListening();
+    _receiver.stopListening();
     super.dispose();
   }
 
