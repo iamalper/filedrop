@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:file_picker/file_picker.dart';
+import 'package:weepy/classes/database.dart';
 import 'package:weepy/classes/discover.dart';
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/classes/sender.dart';
@@ -17,6 +18,7 @@ void main() {
   var sendingFiles = <File>[];
   var platformFiles = <PlatformFile>[];
   late Directory subdir;
+  //TODO: Refactor
   setUpAll(() async {
     final tempDir = await getTemporaryDirectory();
     subdir = tempDir.createTempSync("sending");
@@ -42,6 +44,32 @@ void main() {
             size: sendingFiles[index].lengthSync(),
             name: path.basename(sendingFiles[index].path),
             path: sendingFiles[index].path));
+  });
+
+  group("Database tests", () {
+    final db = DatabaseManager();
+    setUp(() => db.clear());
+    testWidgets("Downloaded file insert", (_) async {
+      final file = DbFile(
+          name: "test1",
+          path: "/.../../",
+          time: DateTime.now(),
+          fileStatus: DbFileStatus.download);
+      await db.insert(file);
+      final savedFiles = await db.files;
+      expect(savedFiles, equals([file]));
+    });
+    testWidgets("Uploaded file insert", (_) async {
+      final file = DbFile(
+          name: "test1",
+          path: "/.../../",
+          time: DateTime.now(),
+          fileStatus: DbFileStatus.upload);
+      await db.insert(file);
+      final savedFiles = await db.files;
+      expect(savedFiles, equals([file]));
+    });
+    tearDown(() => db.close());
   });
   group('IO tests', () {
     var downloadedFiles = <DbFile>[];

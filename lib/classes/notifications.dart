@@ -27,7 +27,6 @@ AndroidNotificationDetails _androidDetails(int progress, Type type) {
       showProgress: true,
       maxProgress: 100,
       progress: progress,
-      channelAction: AndroidNotificationChannelAction.update,
       category: AndroidNotificationCategory.progress);
 }
 
@@ -35,7 +34,7 @@ AndroidNotificationDetails _androidDetails(int progress, Type type) {
 ///
 ///Make sure [progress] within range 0 to 100
 Future<void> showDownload(int progress) => _localNotifications.show(
-    0,
+    Type.download.index,
     null,
     null,
     NotificationDetails(android: _androidDetails(progress, Type.download)));
@@ -43,13 +42,23 @@ Future<void> showDownload(int progress) => _localNotifications.show(
 ///Show or update upload progress notification.
 ///
 ///Make sure [progress] within range 0 to 100
-Future<void> showUpload(int progress) => _localNotifications.show(1, null, null,
+Future<void> showUpload(int progress) => _localNotifications.show(
+    Type.upload.index,
+    null,
+    null,
     NotificationDetails(android: _androidDetails(progress, Type.upload)));
 
-Future<void> cancelDownload() => _localNotifications.cancel(0);
+Future<void> cancelDownload() async {
+  //_localNotifications.cancel(Type.download.index);
+}
 
-Future<void> cancelUpload() => _localNotifications.cancel(1);
+Future<void> cancelUpload() async {
+  //_localNotifications.cancel(Type.upload.index);
+}
 
+///Inıtalise local notifications.
+///
+///Call before using any method.
 Future<bool> initalise() async {
   final status = await _localNotifications.initialize(
       const InitializationSettings(

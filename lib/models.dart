@@ -84,6 +84,18 @@ class DbFile {
         "timeepoch": timeEpoch,
         "fileStatus": fileStatus.index
       };
+  @override
+  int get hashCode =>
+      path.hashCode ^ timeEpoch.hashCode ^ fileStatus.index.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is DbFile) {
+      return other.hashCode == hashCode;
+    } else {
+      return false;
+    }
+  }
 }
 
 class Device {

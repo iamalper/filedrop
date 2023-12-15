@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -132,12 +133,12 @@ class IsolatedSender extends Sender {
     await _workManager.registerOneOffTask(MyTasks.send.name, MyTasks.send.name,
         inputData: map);
     if (progressNotification) {
-      await notifications.showDownload(0);
+      await notifications.showUpload(0);
     }
+    await exitBlock.future;
     if (progressNotification) {
-      await notifications.cancelDownload();
+      await notifications.cancelUpload();
     }
-    return exitBlock.future;
   }
 
   @override
@@ -169,7 +170,8 @@ class IsolatedReceiver extends Receiver {
 
   ///Starts worker and runs [Receiver.listen]
   ///
-  ///If called twice, it has no effect.
+  ///If necessary requests permission. Throws [NoStoragePermissionException]
+  ///if permission rejected by user.
   @override
   Future<int> listen() async {
     await initalize();
@@ -200,38 +202,44 @@ class IsolatedReceiver extends Receiver {
   }
 
   Future<void> _portCallback(data) async {
-    final type = messages.MessageType.values[data["type"]];
-    switch (type) {
-      case messages.MessageType.updatePercent:
-        final message = messages.UpdatePercent.fromMap(data);
-        if (progressNotification) {
-          await notifications.showDownload((message.newPercent * 100).round());
-        }
-        super.onDownloadUpdatePercent?.call(message.newPercent);
-        break;
-      case messages.MessageType.filedropError:
-        final message = messages.FiledropError.fromMap(data);
-        if (progressNotification) {
-          await notifications.cancelDownload();
-        }
-        super.onDownloadError?.call(message.exception);
-        break;
-      case messages.MessageType.fileDownloaded:
-        final message = messages.FileDownloaded.fromMap(data);
-        super.onFileDownloaded?.call(message.file);
-        break;
-      case messages.MessageType.allFilesDownloaded:
-        final message = messages.AllFilesDownloaded.fromMap(data);
-        if (progressNotification) {
-          await notifications.cancelDownload();
-        }
-        super.onAllFilesDownloaded?.call(message.files.toList());
-        break;
-      case messages.MessageType.downloadStarted:
-        final _ = messages.DownloadStarted.fromMap(data);
-        super.onDownloadStart?.call();
-      default:
-        throw Error();
+    try {
+      final type = messages.MessageType.values[data["type"]];
+      switch (type) {
+        case messages.MessageType.updatePercent:
+          final message = messages.UpdatePercent.fromMap(data);
+          if (progressNotification) {
+            await notifications
+                .showDownload((message.newPercent * 100).round());
+          }
+          super.onDownloadUpdatePercent?.call(message.newPercent);
+          break;
+        case messages.MessageType.filedropError:
+          final message = messages.FiledropError.fromMap(data);
+          if (progressNotification) {
+            await notifications.cancelDownload();
+          }
+          super.onDownloadError?.call(message.exception);
+          break;
+        case messages.MessageType.fileDownloaded:
+          final message = messages.FileDownloaded.fromMap(data);
+          super.onFileDownloaded?.call(message.file);
+          break;
+        case messages.MessageType.allFilesDownloaded:
+          final message = messages.AllFilesDownloaded.fromMap(data);
+          if (progressNotification) {
+            await notifications.cancelDownload();
+          }
+          super.onAllFilesDownloaded?.call(message.files.toList());
+          break;
+        case messages.MessageType.downloadStarted:
+          final _ = messages.DownloadStarted.fromMap(data);
+          super.onDownloadStart?.call();
+        default:
+          throw Error();
+      }
+    } on Exception catch (e) {
+      log("Interface error", name: "IsolatedReceiver", error: e);
+      rethrow;
     }
   }
 }

@@ -42,13 +42,16 @@ void main() {
             name: path.basename(sendingFiles[index].path),
             path: sendingFiles[index].path));
   });
+
+  final dbStatusVariant = ValueVariant({true, false});
+
   testWidgets("Test IsolatedReceiver & IsolatedSender", (_) async {
     receiver = IsolatedReceiver(
         saveToTemp: true,
-        useDb: false,
+        useDb: dbStatusVariant.currentValue!,
         onAllFilesDownloaded: (files) => downloadedFiles = files,
         onDownloadError: (error) => throw error,
-        progressNotification: false);
+        progressNotification: true);
     final code = await receiver!.listen();
     var allDevices = <Device>[];
     while (allDevices.isEmpty) {
@@ -56,15 +59,16 @@ void main() {
     }
     final devices = allDevices.where((device) => device.code == code);
     expect(devices, isNotEmpty, reason: "Expected to discover itself");
-    await IsolatedSender(progressNotification: false)
-        .send(devices.first, platformFiles, useDb: false);
+    await IsolatedSender(progressNotification: false).send(
+        devices.first, platformFiles,
+        useDb: dbStatusVariant.currentValue!);
     for (var i = 0; i < sendingFiles.length; i++) {
       final gidenDosya = sendingFiles[i];
       final gelenDosya = File(downloadedFiles[i].path);
       expect(gidenDosya.readAsBytesSync(), equals(gelenDosya.readAsBytesSync()),
           reason: "All sent files expected to has same content as originals");
     }
-  });
+  }, variant: dbStatusVariant);
   tearDown(() {
     for (var file in downloadedFiles) {
       File(file.path).deleteSync();

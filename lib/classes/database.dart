@@ -6,13 +6,13 @@ import '../models.dart';
 
 class DatabaseManager {
   bool _initalised = false;
-  Future<Database> get _db {
+  Future<Database> get _db async {
     if (!_initalised && (Platform.isLinux || Platform.isWindows)) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfiNoIsolate;
     }
-    _initalised = true;
-    return openDatabase("files.db", version: 2, onCreate: (db, version) async {
+    final db = await openDatabase("files.db", version: 2,
+        onCreate: (db, version) async {
       await db.execute(
           "create table downloaded (ID integer primary key autoincrement, name text not null, path text not null, type text, timeepoch int not null)");
       await db.execute(
@@ -26,7 +26,8 @@ class DatabaseManager {
               .execute("alter table uploaded rename column time to timeepoch");
         } on Exception catch (e) {
           //Some old android devices does not support 'alert table'
-          //Workaround: Dropping table then recreating
+          //
+          //Workaround: Dropping table then recreating table
           //since database contains only file history that would not be a problem
           await FirebaseCrashlytics.instance.recordError(e, null,
               reason:
@@ -42,6 +43,8 @@ class DatabaseManager {
         throw UnsupportedError("Unsupported db version");
       }
     });
+    _initalised = true;
+    return db;
   }
 
   ///Insert a uploaded or downloaded file information
