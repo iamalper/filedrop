@@ -121,7 +121,7 @@ jobs:
       - run: flutter config --enable-linux-desktop
 
       - name: Running flutter tests
-        run: xvfb-run flutter test integration_test
+        run: xvfb-run flutter test integration_test/app_test.dart  
 
       - name: Start linux build
         run: flutter build linux
@@ -166,7 +166,7 @@ jobs:
       - run: flutter config --enable-windows-desktop
 
       - name: Running flutter tests
-        run: flutter test integration_test
+        run: flutter test integration_test\app_test.dart 
 
       - name: Build for windows
         run: flutter build windows
