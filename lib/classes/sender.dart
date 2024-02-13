@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-import 'package:flutter/animation.dart';
 import 'package:dio/dio.dart';
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/constants.dart';
@@ -41,9 +40,7 @@ class Sender {
   ///
   ///Throws [OtherDeviceBusyException] if other device is busy.
   Future<void> send(Device device, Iterable<PlatformFile> files,
-      {@Deprecated("Prefer onUploadProgress() instead")
-      AnimationController? uploadAnimC,
-      bool useDb = true,
+      {bool useDb = true,
       void Function(double percent)? onUploadProgress}) async {
     final multiPartFiles = await Future.wait(files.map((e) async {
       final readStream = e.readStream;
@@ -56,7 +53,6 @@ class Sender {
     }).toList());
     final multipartRequest = http.MultipartRequest("POST", device.uri)
       ..files.addAll(multiPartFiles);
-    uploadAnimC?.animateTo(Assets.uploadAnimStart);
     final multipartStream = multipartRequest.finalize();
     final headers = <String, dynamic>{
       Headers.contentLengthHeader: multipartRequest.contentLength,
@@ -76,10 +72,8 @@ class Sender {
             0.0, 1.0, Assets.uploadAnimStart, Assets.uploadAnimEnd);
         assert(mappedValue <= Assets.uploadAnimEnd &&
             mappedValue >= Assets.uploadAnimStart);
-        uploadAnimC?.animateTo(mappedValue.toDouble());
         onUploadProgress?.call(newValue);
       }));
-      uploadAnimC?.animateTo(1.0);
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) {
         return;
@@ -101,7 +95,6 @@ class Sender {
           await db.insert(dbFile);
         }
       }
-      uploadAnimC?.value = 1;
       if (useDb) {
         await db.close();
       }

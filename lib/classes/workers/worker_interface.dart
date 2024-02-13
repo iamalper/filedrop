@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:weepy/classes/exceptions.dart';
@@ -21,7 +20,7 @@ import '../receiver.dart';
 enum MyTasks { receive, send }
 
 final _workManager = Workmanager();
-
+//TODO: Find a way to get if workmanager is active on app restarts
 @pragma("vm:entry-point")
 void _callBack() {
   _workManager.executeTask((taskName, inputData) async {
@@ -87,18 +86,14 @@ void _callBack() {
 class IsolatedSender extends Sender {
   ///If [true] creates and manages progress notification.
   ///
-  ///[progressNotification] will change to [false] if user denies permission
+  ///[this.progressNotification] will change to [false] if user denies permission
   bool progressNotification;
   IsolatedSender({this.progressNotification = true});
 
   ///Run [Sender] from a worker.
-  ///
-  ///Call [initalize()] before.
   @override
   Future<void> send(Device device, Iterable<PlatformFile> files,
-      {@Deprecated("It has no effect. Prefer onUploadProgress instead")
-      AnimationController? uploadAnimC,
-      bool useDb = true,
+      {bool useDb = true,
       void Function(double percent)? onUploadProgress}) async {
     await initalize();
     if (progressNotification) {

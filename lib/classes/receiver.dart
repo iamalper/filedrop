@@ -184,7 +184,6 @@ class Receiver {
           await for (var bytes in mime.timeout(const Duration(seconds: 10))) {
             fileWriter.add(bytes);
             downloadPercent += bytes.length / totalLengh;
-            downloadAnimC?.value = downloadPercent;
             onDownloadUpdatePercent?.call(downloadPercent);
           }
           await fileWriter.flush();
@@ -226,9 +225,7 @@ class Receiver {
         onDownloadError?.call(ConnectionLostException());
         return Response.badRequest();
       } finally {
-        //File downloaded successfully or failed. Resetting progess for both cases.
-        downloadAnimC?.value = 1;
-
+        //File downloaded successfully or failed.
         //Open for new connections
         _isBusy = false;
       }
