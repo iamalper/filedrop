@@ -2,17 +2,6 @@ name: BuildTask
 
 on:
   workflow_dispatch:
-  push:
-    paths-ignore:
-      - docs/**
-      - screenshots**
-      - test/**
-      - LICENSE
-      - README.md
-      - GitVersion.yml
-      - .vscode/**
-      - .github/**
-      - whatsnew/*
 
 jobs:
   build_android:
