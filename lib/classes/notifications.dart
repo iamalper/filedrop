@@ -56,10 +56,10 @@ Future<void> cancelUpload() async {
   //_localNotifications.cancel(Type.upload.index);
 }
 
-///Inıtalise local notifications.
+///Initialize local notifications.
 ///
 ///Call before using any method.
-Future<bool> initalise() async {
+Future<bool> initialize() async {
   final status = await _localNotifications.initialize(
       const InitializationSettings(
           android: AndroidInitializationSettings("@mipmap/ic_launcher")));

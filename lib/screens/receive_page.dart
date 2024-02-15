@@ -3,7 +3,7 @@ import 'package:weepy/classes/receiver.dart';
 import 'package:weepy/files_riverpod.dart';
 import 'package:weepy/models.dart';
 import '../classes/exceptions.dart';
-import '../classes/workers/worker_interface.dart';
+import '../classes/workers/isolated_receiver.dart';
 import '../constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';

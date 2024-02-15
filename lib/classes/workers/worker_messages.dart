@@ -1,6 +1,7 @@
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/models.dart';
-import 'worker_interface.dart';
+import 'isolated_receiver.dart';
+import 'isolated_sender.dart';
 
 enum MessageType {
   updatePercent,
@@ -8,7 +9,8 @@ enum MessageType {
   fileDownloaded,
   allFilesDownloaded,
   downloadStarted,
-  completed
+  completed,
+  alive
 }
 
 ///Message which should send between [IsolatedSender] and main isolate.
@@ -129,6 +131,20 @@ class Completed implements SenderMessage {
   MessageType get type => MessageType.completed;
 
   Completed.fromMap(Map<String, dynamic> map) {
+    assert(MessageType.values[map["type"]] == type);
+  }
+}
+
+///Respond for checking if worker is alive
+class Alive implements SenderMessage, ReceiverMessage {
+  const Alive();
+  @override
+  Map<String, dynamic> get map => {"type": type.index};
+
+  @override
+  MessageType get type => MessageType.alive;
+
+  Alive.fromMap(Map<String, dynamic> map) {
     assert(MessageType.values[map["type"]] == type);
   }
 }

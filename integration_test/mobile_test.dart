@@ -6,8 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:weepy/classes/discover.dart';
-import 'package:weepy/classes/workers/worker_interface.dart';
 import 'package:weepy/models.dart';
+import 'package:weepy/classes/workers/isolated_receiver.dart';
+import 'package:weepy/classes/workers/isolated_sender.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -59,8 +60,7 @@ void main() {
     }
     final devices = allDevices.where((device) => device.code == code);
     expect(devices, isNotEmpty, reason: "Expected to discover itself");
-    await IsolatedSender(progressNotification: false).send(
-        devices.first, platformFiles,
+    await IsolatedSender().send(devices.first, platformFiles,
         useDb: dbStatusVariant.currentValue!);
     for (var i = 0; i < sendingFiles.length; i++) {
       final gidenDosya = sendingFiles[i];

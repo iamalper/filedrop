@@ -15,6 +15,8 @@ import 'package:http/http.dart' as http;
 class Sender {
   final _dio = Dio();
   final _senderCancelToken = CancelToken();
+  final void Function(double percent)? onUploadProgress;
+  Sender({this.onUploadProgress});
 
   ///Pick files which are about to send.
   ///
@@ -33,15 +35,17 @@ class Sender {
   ///
   ///[files] will send to [device]
   ///
-  ///If [uploadAnimC] or [onUploadProgress] is set, progess will be sent to it.
+  ///If [onUploadProgress] is set, progress will be sent to it.
   ///
-  ///If [useDb] is `true`, file informations will be saved to sqflite database.
+  ///If [useDb] is `true`, file information will be saved to sqflite database.
   ///Must set to `false` for prevent database usage.
   ///
   ///Throws [OtherDeviceBusyException] if other device is busy.
-  Future<void> send(Device device, Iterable<PlatformFile> files,
-      {bool useDb = true,
-      void Function(double percent)? onUploadProgress}) async {
+  Future<void> send(
+    Device device,
+    Iterable<PlatformFile> files, {
+    bool useDb = true,
+  }) async {
     final multiPartFiles = await Future.wait(files.map((e) async {
       final readStream = e.readStream;
       if (readStream == null) {

@@ -5,11 +5,9 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
-import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/classes/sender.dart';
 import 'package:weepy/models.dart';
 
-import '../notifications.dart' as notifications;
 import 'worker_messages.dart' as messages;
 import 'dart:isolate';
 import 'dart:ui';
@@ -19,46 +17,70 @@ import '../receiver.dart';
 
 enum MyTasks { receive, send }
 
-final _workManager = Workmanager();
-//TODO: Find a way to get if workmanager is active on app restarts
+enum PortName { main2receiver, main2sender }
+
+final workManager = Workmanager();
 @pragma("vm:entry-point")
 void _callBack() {
-  _workManager.executeTask((taskName, inputData) async {
+  workManager.executeTask((taskName, inputData) async {
     try {
       final task =
           MyTasks.values.singleWhere((element) => element.name == taskName);
       switch (task) {
         case MyTasks.receive:
-          SendPort? getReceiverPort() =>
+          SendPort? getSendPort() =>
               IsolateNameServer.lookupPortByName(MyTasks.receive.name);
+
+          final receiverPort = ReceivePort();
+          IsolateNameServer.registerPortWithName(
+              receiverPort.sendPort, PortName.main2receiver.name);
+          receiverPort.listen((message) {
+            //TODO: Test alive feature
+            if (message["data"] == messages.MessageType.alive) {
+              log("Got alive message.", name: "Receiver worker");
+              getSendPort()?.send(const messages.Alive().map);
+            }
+          });
           final exitBlock = Completer<bool>();
           final receiverMap = inputData!;
           final receiver =
               Receiver.fromMap(receiverMap, onDownloadUpdatePercent: (percent) {
-            final sendPort = getReceiverPort();
+            final sendPort = getSendPort();
             sendPort?.send(messages.UpdatePercent(percent).map);
           }, onDownloadError: (error) {
-            final sendPort = getReceiverPort();
+            final sendPort = getSendPort();
             if (sendPort != null) {
               sendPort.send(messages.FiledropError(error).map);
             } else {
               exitBlock.completeError(error);
             }
           }, onDownloadStart: () {
-            final sendPort = getReceiverPort();
+            final sendPort = getSendPort();
             sendPort?.send(const messages.DownloadStarted().map);
           }, onAllFilesDownloaded: (files) {
-            final sendPort = getReceiverPort();
+            final sendPort = getSendPort();
             sendPort?.send(messages.AllFilesDownloaded(files).map);
             exitBlock.complete(true);
           }, onFileDownloaded: (file) {
-            final sendPort = getReceiverPort();
+            final sendPort = getSendPort();
             sendPort?.send(messages.FileDownloaded(file).map);
           });
           await receiver.listen();
           return exitBlock.future;
         case MyTasks.send:
           final senderMap = inputData!;
+          final receiverPort = ReceivePort();
+          IsolateNameServer.registerPortWithName(
+              receiverPort.sendPort, PortName.main2sender.name);
+          SendPort? getSendPort() =>
+              IsolateNameServer.lookupPortByName(MyTasks.send.name);
+          receiverPort.listen((message) {
+            if (message["data"] == messages.MessageType.alive) {
+              //TODO: Test alive feature
+              log("Got alive message.", name: "Sender worker");
+              getSendPort()?.send(const messages.Alive().map);
+            }
+          });
           final fileDirs = <String>[];
           for (var a = 0; senderMap["file$a"] != null; a++) {
             fileDirs.add(senderMap["file$a"]);
@@ -68,173 +90,27 @@ void _callBack() {
           final platformFiles = files.map((e) => PlatformFile(
               path: e.path, name: basename(e.path), size: e.lengthSync()));
           final device = Device.fromMap(senderMap);
-          SendPort? getSenderPort() =>
-              IsolateNameServer.lookupPortByName(MyTasks.send.name);
-          await Sender().send(device, platformFiles,
-              useDb: senderMap["useDb"],
-              onUploadProgress: (percent) =>
-                  getSenderPort()?.send(messages.UpdatePercent(percent).map));
-          getSenderPort()?.send(const messages.Completed().map);
+
+          await Sender(
+                  onUploadProgress: (percent) =>
+                      getSendPort()?.send(messages.UpdatePercent(percent).map))
+              .send(
+            device,
+            platformFiles,
+            useDb: senderMap["useDb"],
+          );
+          getSendPort()?.send(const messages.Completed().map);
           return true;
       }
     } on Exception {
       rethrow;
-    }
+    
   });
 }
 
-class IsolatedSender extends Sender {
-  ///If [true] creates and manages progress notification.
-  ///
-  ///[this.progressNotification] will change to [false] if user denies permission
-  bool progressNotification;
-  IsolatedSender({this.progressNotification = true});
-
-  ///Run [Sender] from a worker.
-  @override
-  Future<void> send(Device device, Iterable<PlatformFile> files,
-      {bool useDb = true,
-      void Function(double percent)? onUploadProgress}) async {
-    await initalize();
-    if (progressNotification) {
-      progressNotification = await notifications.initalise();
-    }
-    final fileDirs = files.map((e) => e.path!);
-    final map = device.map;
-    for (var i = 0; i < fileDirs.length; i++) {
-      map["file$i"] = fileDirs.elementAt(i);
-    }
-    map["useDb"] = useDb;
-    final port = ReceivePort();
-    IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.send.name);
-
-    final exitBlock = Completer<void>();
-    port.listen((data) async {
-      switch (messages.MessageType.values[data["type"]]) {
-        case messages.MessageType.updatePercent:
-          final message = messages.UpdatePercent.fromMap(data);
-          if (progressNotification) {
-            await notifications.showUpload((message.newPercent * 100).round());
-          }
-          onUploadProgress?.call(message.newPercent);
-          break;
-        case messages.MessageType.completed:
-          final _ = messages.Completed.fromMap(data);
-          exitBlock.complete();
-        default:
-          throw Error();
-      }
-    });
-    await _workManager.registerOneOffTask(MyTasks.send.name, MyTasks.send.name,
-        inputData: map);
-    if (progressNotification) {
-      await notifications.showUpload(0);
-    }
-    await exitBlock.future;
-    if (progressNotification) {
-      await notifications.cancelUpload();
-    }
-  }
-
-  @override
-  Future<void> cancel() => _workManager.cancelByUniqueName(MyTasks.send.name);
-}
-
-Future<void> initalize() async {
-  await _workManager.initialize(_callBack, isInDebugMode: kDebugMode);
-}
-
-class IsolatedReceiver extends Receiver {
-  ///If [true] creates and manages progress notification.
-  bool progressNotification;
-
-  ///Runs [Receiver] from a worker.
-  ///
-  ///Call [initalize()] before.
-  IsolatedReceiver(
-      {super.onDownloadUpdatePercent,
-      super.useDb,
-      super.saveToTemp,
-      super.port,
-      super.onDownloadStart,
-      super.onFileDownloaded,
-      super.onAllFilesDownloaded,
-      super.onDownloadError,
-      super.code,
-      this.progressNotification = true});
-
-  ///Starts worker and runs [Receiver.listen]
-  ///
-  ///If necessary requests permission. Throws [NoStoragePermissionException]
-  ///if permission rejected by user.
-  @override
-  Future<int> listen() async {
-    await initalize();
-    if (progressNotification) {
-      progressNotification = await notifications.initalise();
-    }
-    if (!saveToTemp) {
-      final permissionStatus = await super.checkPermission();
-      if (!permissionStatus) {
-        throw NoStoragePermissionException();
-      }
-    }
-    final port = ReceivePort();
-    IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.receive.name);
-    port.listen(_portCallback);
-    await _workManager.registerOneOffTask(
-        MyTasks.receive.name, MyTasks.receive.name,
-        inputData: super.map, existingWorkPolicy: ExistingWorkPolicy.keep);
-    return super.code;
-  }
-
-  @override
-  Future<void> stopListening() async {
-    if (progressNotification) {
-      await notifications.cancelDownload();
-    }
-    await _workManager.cancelByUniqueName(MyTasks.receive.name);
-  }
-
-  Future<void> _portCallback(data) async {
-    try {
-      final type = messages.MessageType.values[data["type"]];
-      switch (type) {
-        case messages.MessageType.updatePercent:
-          final message = messages.UpdatePercent.fromMap(data);
-          if (progressNotification) {
-            await notifications
-                .showDownload((message.newPercent * 100).round());
-          }
-          super.onDownloadUpdatePercent?.call(message.newPercent);
-          break;
-        case messages.MessageType.filedropError:
-          final message = messages.FiledropError.fromMap(data);
-          if (progressNotification) {
-            await notifications.cancelDownload();
-          }
-          super.onDownloadError?.call(message.exception);
-          break;
-        case messages.MessageType.fileDownloaded:
-          final message = messages.FileDownloaded.fromMap(data);
-          super.onFileDownloaded?.call(message.file);
-          break;
-        case messages.MessageType.allFilesDownloaded:
-          final message = messages.AllFilesDownloaded.fromMap(data);
-          if (progressNotification) {
-            await notifications.cancelDownload();
-          }
-          super.onAllFilesDownloaded?.call(message.files.toList());
-          break;
-        case messages.MessageType.downloadStarted:
-          final _ = messages.DownloadStarted.fromMap(data);
-          super.onDownloadStart?.call();
-        default:
-          throw Error();
-      }
-    } on Exception catch (e) {
-      log("Interface error", name: "IsolatedReceiver", error: e);
-      rethrow;
-    }
-  }
+Future<ReceivePort> initialize() async {
+  final port = ReceivePort();
+  IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.send.name);
+  await workManager.initialize(_callBack, isInDebugMode: kDebugMode);
+  return port;
 }

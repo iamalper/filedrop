@@ -1,18 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:num_remap/num_remap.dart';
 import 'package:weepy/classes/exceptions.dart';
 import 'package:weepy/files_riverpod.dart';
 import '../classes/discover.dart' as discover_class; //for prevent collusion
 import '../classes/sender.dart';
-import '../classes/workers/worker_interface.dart';
+import '../classes/workers/isolated_sender.dart';
 import '../constants.dart';
 import '../models.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum _UiState { scanning, select, sending, complete, error }
+enum UiState { scanning, select, sending, complete, error }
 
 class SendPage extends StatelessWidget {
   final bool isDark;
@@ -34,17 +33,34 @@ class SendPageInner extends ConsumerStatefulWidget {
 
 class _SendPageInnerState extends ConsumerState<SendPageInner>
     with TickerProviderStateMixin {
-  final _sender = defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS
-      ? IsolatedSender()
-      : Sender();
-  var _uiState = _UiState.scanning;
-  List<Device> _ipList = [];
-  late AnimationController _uploadAnimC;
-  late String _errorMessage;
-  late LottieBuilder animation;
+  late final _sender = switch (defaultTargetPlatform) {
+    TargetPlatform.android => IsolatedSender(onUploadProgress: _updateProgress),
+    _ => Sender(onUploadProgress: _updateProgress)
+  };
 
-  set uiState(_UiState uiState) {
+  void _updateProgress(double percent) {
+    final mappedValue = percent.remapAndClamp(
+        0.0, 1.0, Assets.uploadAnimStart, Assets.uploadAnimEnd);
+    assert(mappedValue <= Assets.uploadAnimEnd &&
+        mappedValue >= Assets.uploadAnimStart);
+    _uploadAnimC.animateTo(mappedValue.toDouble());
+  }
+
+  List<Device> _devices = [];
+
+  //Don't make final, controller must reinitialized at initState
+  late AnimationController _uploadAnimC;
+
+  late String _errorMessage;
+  late final animation = Assets.upload(_uploadAnimC, (composition) {
+    _uploadAnimC.duration = composition.duration;
+  });
+
+  UiState get uiState => _uiState;
+  var _uiState = UiState.scanning;
+
+  ///Update current widget state
+  set uiState(UiState uiState) {
     if (mounted) {
       setState(() => _uiState = uiState);
     }
@@ -59,23 +75,20 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
       ..addListener(() {
         setState(() {});
       });
-    animation = Assets.upload(_uploadAnimC, (composition) {
-      _uploadAnimC.duration = composition.duration;
-    });
     super.initState();
     _discover();
   }
 
   Future<void> _discover() async {
     try {
-      while (_ipList.isEmpty) {
-        _ipList = await discover_class.Discover.discover();
+      while (_devices.isEmpty) {
+        _devices = await discover_class.Discover.discover();
       }
-      uiState = _UiState.select;
+      uiState = UiState.select;
     } on FileDropException catch (e) {
       if (context.mounted) {
         _errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
-        uiState = _UiState.error;
+        uiState = UiState.error;
       }
     }
   }
@@ -89,8 +102,8 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
 
   @override
   Widget build(BuildContext context) {
-    switch (_uiState) {
-      case _UiState.sending:
+    switch (uiState) {
+      case UiState.sending:
         return Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -98,17 +111,17 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
             animation,
           ]),
         );
-      case _UiState.complete:
+      case UiState.complete:
         return Text(
           AppLocalizations.of(context)!.filesSent,
           textAlign: TextAlign.center,
         );
-      case _UiState.error:
+      case UiState.error:
         return Text(
           _errorMessage,
           textAlign: TextAlign.center,
         );
-      case _UiState.scanning:
+      case UiState.scanning:
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -117,18 +130,18 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
           ],
         );
 
-      case _UiState.select: //network scanned
-        if (_ipList.isEmpty) {
-          //Obselete, discovery loops until a device found.
+      case UiState.select: //network scanned
+        if (_devices.isEmpty) {
+          //Obsolete, discovery loops until a device found.
           return Text(
             AppLocalizations.of(context)!.noReceiverDeviceFound,
             textAlign: TextAlign.center,
           );
         } else {
           return ListView.builder(
-              itemCount: _ipList.length,
+              itemCount: _devices.length,
               itemBuilder: (context, index) {
-                final device = _ipList[index];
+                final device = _devices[index];
                 return ListTile(
                   title: Text(device.code.toString()),
                   leading: const Icon(Icons.phone_android),
@@ -146,16 +159,10 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
   Future<void> _send(Device device) async {
     final file = await _sender.filePick();
     if (file != null) {
-      uiState = _UiState.sending;
+      uiState = UiState.sending;
       try {
         _uploadAnimC.animateTo(Assets.uploadAnimStart);
-        await _sender.send(device, file, onUploadProgress: (percent) {
-          final mappedValue = percent.remapAndClamp(
-              0.0, 1.0, Assets.uploadAnimStart, Assets.uploadAnimEnd);
-          assert(mappedValue <= Assets.uploadAnimEnd &&
-              mappedValue >= Assets.uploadAnimStart);
-          _uploadAnimC.animateTo(mappedValue.toDouble());
-        });
+        await _sender.send(device, file);
         final filesNotifier = ref.read(filesProvider.notifier);
         await filesNotifier.addFiles(file
             .map((e) => DbFile(
@@ -164,11 +171,11 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
                 time: DateTime.now(),
                 fileStatus: DbFileStatus.upload))
             .toList());
-        uiState = _UiState.complete;
+        uiState = UiState.complete;
       } on FileDropException catch (e) {
         if (context.mounted) {
           _errorMessage = e.getErrorMessage(AppLocalizations.of(context)!);
-          uiState = _UiState.error;
+          uiState = UiState.error;
         }
       }
     }
