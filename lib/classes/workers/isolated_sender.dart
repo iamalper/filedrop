@@ -1,25 +1,41 @@
 import 'dart:async';
+import 'dart:isolate';
+import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:weepy/classes/notifications.dart' as notifications;
 import 'package:weepy/classes/sender.dart';
-import 'package:weepy/classes/workers/isolated_receiver.dart';
 import 'package:weepy/classes/workers/worker_interface.dart';
 import 'package:weepy/classes/workers/worker_messages.dart' as messages;
 import 'package:weepy/models.dart';
+import 'base_worker.dart';
 
-class IsolatedSender extends Sender {
+class IsolatedSender extends Sender implements BaseWorker {
   IsolatedSender({super.onUploadProgress});
-
-  ///Returns whether [IsolatedReceiver] active in a worker.
+  //TODO: Test completer
+  final aliveCheckCompleter = Completer<bool>();
+  @override
   Future<bool> isActive() async {
-    //TODO
-    throw UnimplementedError();
+    final sendPort = getSendPort();
+    if (sendPort == null) {
+      return false;
+    }
+    sendPort.send(const messages.Alive().map);
+    const waitDuration = Duration(seconds: 5);
+    final aliveCanceller = Future.delayed(
+      waitDuration,
+      () => aliveCheckCompleter.complete(false),
+    );
+    final alive = await aliveCheckCompleter.future;
+    if (alive) {
+      aliveCanceller.ignore();
+    }
+    return alive;
   }
 
   @override
   Future<void> send(Device device, Iterable<PlatformFile> files,
       {bool useDb = true, bool progressNotification = true}) async {
-    final port = await initialize();
+    await initialize();
     if (progressNotification) {
       progressNotification = await notifications.initialize();
     }
@@ -31,7 +47,8 @@ class IsolatedSender extends Sender {
     map["useDb"] = useDb;
 
     final exitBlock = Completer<void>();
-    port.listen((data) async {
+    getReceivePort().listen((data) async {
+      //Listen incoming messages
       switch (messages.MessageType.values[data["type"]]) {
         case messages.MessageType.updatePercent:
           final message = messages.UpdatePercent.fromMap(data);
@@ -43,11 +60,13 @@ class IsolatedSender extends Sender {
         case messages.MessageType.completed:
           final _ = messages.Completed.fromMap(data);
           exitBlock.complete();
+        case messages.MessageType.alive:
+          aliveCheckCompleter.complete(true);
         default:
           throw Error();
       }
     });
-    await workManager.registerOneOffTask(MyTasks.send.name, MyTasks.send.name,
+    await workManager.registerOneOffTask(Tasks.send.name, Tasks.send.name,
         inputData: map);
     if (progressNotification) {
       //Create notification
@@ -60,5 +79,21 @@ class IsolatedSender extends Sender {
   }
 
   @override
-  Future<void> cancel() => workManager.cancelByUniqueName(MyTasks.send.name);
+  Future<void> stop() => workManager.cancelByUniqueName(Tasks.send.name);
+
+  @override
+  ReceivePort getReceivePort() {
+    final receivePort = ReceivePort();
+    final isRegistered = IsolateNameServer.registerPortWithName(
+        receivePort.sendPort, PortNames.sender2main.name);
+    assert(isRegistered);
+    return receivePort;
+  }
+
+  @override
+  SendPort? getSendPort() {
+    final sendPort =
+        IsolateNameServer.lookupPortByName(PortNames.main2sender.name);
+    return sendPort;
+  }
 }

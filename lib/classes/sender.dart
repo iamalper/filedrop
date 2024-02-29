@@ -26,7 +26,7 @@ class Sender {
     return result?.files;
   }
 
-  void cancel() {
+  void stop() {
     log("Request cancelled", name: "Sender");
     _senderCancelToken.cancel();
   }

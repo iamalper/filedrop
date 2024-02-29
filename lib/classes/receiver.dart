@@ -19,7 +19,7 @@ import '../constants.dart';
 
 ///Class for all Recieve jobs
 ///
-///Available methods are [listen] and [stopListening]
+///Available methods are [listen] and [stop]
 class Receiver {
   final _files = <DbFile>[];
   late final _ms = MediaStore();
@@ -251,7 +251,7 @@ class Receiver {
   ///Closes the listening server.
   ///
   ///Is is safe to call before [listen] or after [listen] .
-  Future<void> stopListening() async => await _server?.close();
+  Future<void> stop() async => await _server?.close();
 
   Map<String, dynamic> get map => {
         "useDb": useDb,

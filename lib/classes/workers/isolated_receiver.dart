@@ -9,11 +9,15 @@ import 'package:weepy/classes/workers/worker_interface.dart';
 import 'package:weepy/classes/workers/worker_messages.dart' as messages;
 import 'package:workmanager/workmanager.dart';
 
-class IsolatedReceiver extends Receiver {
+import 'base_worker.dart';
+
+class IsolatedReceiver extends Receiver implements BaseWorker {
   ///If [true] creates and manages progress notification.
   bool progressNotification;
 
-  ///Runs [Receiver] from a worker.
+  //TODO: Test completer
+  final aliveCheckCompleter = Completer<bool>();
+
   IsolatedReceiver(
       {super.onDownloadUpdatePercent,
       super.useDb,
@@ -25,6 +29,25 @@ class IsolatedReceiver extends Receiver {
       super.onDownloadError,
       super.code,
       this.progressNotification = true});
+
+  @override
+  Future<bool> isActive() async {
+    final sendPort = getSendPort();
+    if (sendPort == null) {
+      return false;
+    }
+    sendPort.send(const messages.Alive().map);
+    const waitDuration = Duration(seconds: 5);
+    final aliveCanceller = Future.delayed(
+      waitDuration,
+      () => aliveCheckCompleter.complete(false),
+    );
+    final alive = await aliveCheckCompleter.future;
+    if (alive) {
+      aliveCanceller.ignore();
+    }
+    return alive;
+  }
 
   ///Starts worker and runs [Receiver.listen]
   ///
@@ -42,21 +65,19 @@ class IsolatedReceiver extends Receiver {
         throw NoStoragePermissionException();
       }
     }
-    final port = ReceivePort();
-    IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.receive.name);
-    port.listen(_portCallback);
-    await workManager.registerOneOffTask(
-        MyTasks.receive.name, MyTasks.receive.name,
+
+    getReceivePort().listen(_portCallback);
+    await workManager.registerOneOffTask(Tasks.receive.name, Tasks.receive.name,
         inputData: super.map, existingWorkPolicy: ExistingWorkPolicy.keep);
     return super.code;
   }
 
   @override
-  Future<void> stopListening() async {
+  Future<void> stop() async {
     if (progressNotification) {
       await notifications.cancelDownload();
     }
-    await workManager.cancelByUniqueName(MyTasks.receive.name);
+    await workManager.cancelByUniqueName(Tasks.receive.name);
   }
 
   Future<void> _portCallback(data) async {
@@ -92,12 +113,30 @@ class IsolatedReceiver extends Receiver {
         case messages.MessageType.downloadStarted:
           final _ = messages.DownloadStarted.fromMap(data);
           super.onDownloadStart?.call();
+        case messages.MessageType.alive:
+          aliveCheckCompleter.complete(true);
         default:
           throw Error();
       }
     } on Exception catch (e) {
-      log("Interface error", name: "IsolatedReceiver", error: e);
+      log("Error", name: "IsolatedReceiver", error: e);
       rethrow;
     }
+  }
+
+  @override
+  ReceivePort getReceivePort() {
+    final receivePort = ReceivePort();
+    final isRegistered = IsolateNameServer.registerPortWithName(
+        receivePort.sendPort, PortNames.receiver2main.name);
+    assert(isRegistered);
+    return receivePort;
+  }
+
+  @override
+  SendPort? getSendPort() {
+    final sendPort =
+        IsolateNameServer.lookupPortByName(PortNames.main2receiver.name);
+    return sendPort;
   }
 }

@@ -1,3 +1,8 @@
+///This library manages essentials for all `worker`'s
+///
+///We are using `worker`'s from workmanager plugin to continue jobs from background
+library;
+
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
@@ -15,9 +20,9 @@ import 'package:workmanager/workmanager.dart';
 
 import '../receiver.dart';
 
-enum MyTasks { receive, send }
+enum PortNames { receiver2main, sender2main, main2receiver, main2sender }
 
-enum PortName { main2receiver, main2sender }
+enum Tasks { receive, send }
 
 final workManager = Workmanager();
 @pragma("vm:entry-point")
@@ -25,15 +30,15 @@ void _callBack() {
   workManager.executeTask((taskName, inputData) async {
     try {
       final task =
-          MyTasks.values.singleWhere((element) => element.name == taskName);
+          Tasks.values.singleWhere((element) => element.name == taskName);
       switch (task) {
-        case MyTasks.receive:
+        case Tasks.receive:
           SendPort? getSendPort() =>
-              IsolateNameServer.lookupPortByName(MyTasks.receive.name);
+              IsolateNameServer.lookupPortByName(PortNames.receiver2main.name);
 
           final receiverPort = ReceivePort();
           IsolateNameServer.registerPortWithName(
-              receiverPort.sendPort, PortName.main2receiver.name);
+              receiverPort.sendPort, PortNames.main2receiver.name);
           receiverPort.listen((message) {
             //TODO: Test alive feature
             if (message["data"] == messages.MessageType.alive) {
@@ -67,13 +72,13 @@ void _callBack() {
           });
           await receiver.listen();
           return exitBlock.future;
-        case MyTasks.send:
+        case Tasks.send:
           final senderMap = inputData!;
           final receiverPort = ReceivePort();
           IsolateNameServer.registerPortWithName(
-              receiverPort.sendPort, PortName.main2sender.name);
+              receiverPort.sendPort, PortNames.main2sender.name);
           SendPort? getSendPort() =>
-              IsolateNameServer.lookupPortByName(MyTasks.send.name);
+              IsolateNameServer.lookupPortByName(PortNames.sender2main.name);
           receiverPort.listen((message) {
             if (message["data"] == messages.MessageType.alive) {
               //TODO: Test alive feature
@@ -104,13 +109,10 @@ void _callBack() {
       }
     } on Exception {
       rethrow;
-    
+    }
   });
 }
 
-Future<ReceivePort> initialize() async {
-  final port = ReceivePort();
-  IsolateNameServer.registerPortWithName(port.sendPort, MyTasks.send.name);
+Future<void> initialize() async {
   await workManager.initialize(_callBack, isInDebugMode: kDebugMode);
-  return port;
 }

@@ -96,7 +96,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
   @override
   void dispose() {
     _uploadAnimC.dispose();
-    _sender.cancel();
+    _sender.stop();
     super.dispose();
   }
 

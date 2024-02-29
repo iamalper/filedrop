@@ -98,7 +98,7 @@ class _ReceivePageInnerState extends ConsumerState<ReceivePageInner>
   @override
   void dispose() {
     _downloadAnimC.dispose();
-    _receiver.stopListening();
+    _receiver.stop();
     super.dispose();
   }
 

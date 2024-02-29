@@ -107,7 +107,7 @@ void main() {
       downloadedFiles = [];
     });
     tearDownAll(() async {
-      await receiver?.stopListening();
+      await receiver?.stop();
     });
   });
 
@@ -134,7 +134,7 @@ void main() {
         devices = await Discover.discover();
       }
       expect(devices.where((device) => device.code == code), isNotEmpty);
-      Future.delayed(const Duration(milliseconds: 500), sender.cancel);
+      Future.delayed(const Duration(milliseconds: 500), sender.stop);
       await sender.send(
           devices.first,
           [

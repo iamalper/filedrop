@@ -76,6 +76,6 @@ void main() {
     downloadedFiles = [];
   });
   tearDownAll(() async {
-    await receiver?.stopListening();
+    await receiver?.stop();
   });
 }
