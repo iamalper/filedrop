@@ -5,57 +5,39 @@ on:
 
 jobs:
   build_android:
-
     runs-on: ubuntu-latest
-    needs: version
 
     steps:
-
       - uses: actions/checkout@v3
-      
-      - name: Get version.txt
-        uses: actions/download-artifact@v2
-        with:
-          name: gitversion
 
-      - name: Read version
-        id: version
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: version.txt
-      
-      - name: Update version in pubpsec.yaml
-        run: sed -i 's/1.0.0+1/${{ steps.version.outputs.content }}+${{ github.run_number }}/g' pubspec.yaml
-      
       - name: Download Android keystore
         id: android_keystore
         uses: timheuer/base64-to-file@v1.0.3
         with:
           fileName: upload-keystore.jks
           encodedString: ${{ secrets.KEYSTORE_BASE64 }}
-          
+
       - name: Create key.properties
         run: |
           echo "storeFile=${{ steps.android_keystore.outputs.filePath }}" > android/key.properties
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          
+
       - uses: actions/setup-java@v3
         with:
-          distribution: 'zulu'
+          distribution: "zulu"
           java-version: "12.x"
-          cache: 'gradle'
- 
+          cache: "gradle"
+
       - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: "stable"
           cache: true
 
-  
       - name: Start appbundle build
         run: flutter build appbundle
-        
+
       - name: Start apk build
         run: flutter build apk
 
@@ -69,39 +51,18 @@ jobs:
           if-no-files-found: error
 
   build_linux:
-    needs: [version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Get version.txt
-        uses: actions/download-artifact@v2
-        with:
-          name: gitversion
-
-      - name: Read version
-        id: version
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: version.txt
-      
-      - name: Update version in pubpsec.yaml
-        run: sed -i 's/1.0.0+1/${{ steps.version.outputs.content }}+${{ github.run_number }}/g' pubspec.yaml
-        
-      - name: Update version in debian.yaml
-        run: sed -i 's/1.0.0/${{ steps.version.outputs.content }}/g' debian/debian.yaml
-
-      - name: Update version in FileDrop.desktop
-        run: sed -i 's/1.0.0/${{ steps.version.outputs.content }}/g' debian/gui/FileDrop.desktop
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: "stable"
           cache: true
 
       - name: Get flutter_to_debian
         run: dart pub global activate -s git https://github.com/iamalper/flutter_to_debian
-    
+
       - name: Preparing for linux build
         run: |
           sudo apt-get update -y
@@ -110,7 +71,7 @@ jobs:
       - run: flutter config --enable-linux-desktop
 
       - name: Running flutter tests
-        run: xvfb-run flutter test integration_test/app_test.dart  
+        run: xvfb-run flutter test integration_test/app_test.dart
 
       - name: Start linux build
         run: flutter build linux
@@ -128,34 +89,19 @@ jobs:
 
   build_windows:
     runs-on: windows-latest
-    needs: version
     steps:
       - uses: actions/checkout@v3
       - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: "stable"
           cache: true
 
       - uses: actions/checkout@v3
-      
-      - name: Get version.txt
-        uses: actions/download-artifact@v2
-        with:
-          name: gitversion
-
-      - name: Read version
-        id: version
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: version.txt
-      
-      - name: Update version in pubpsec.yaml
-        run: sed -i 's/1.0.0+1/${{ steps.version.outputs.content }}+${{ github.run_number }}/g' pubspec.yaml
 
       - run: flutter config --enable-windows-desktop
 
       - name: Running flutter tests
-        run: flutter test integration_test\app_test.dart 
+        run: flutter test integration_test\app_test.dart
 
       - name: Build for windows
         run: flutter build windows
@@ -172,23 +118,17 @@ jobs:
     env:
       isRelease: ${{ github.ref_name == 'main' }}
     runs-on: ubuntu-latest
-    needs: [build_android, build_linux, version, build_windows]
+    needs: [build_android, build_linux, build_windows]
     steps:
       - uses: actions/checkout@v3
 
       - name: Downloading builds
         uses: actions/download-artifact@v3
 
-      - name: Read version
-        id: version
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: gitversion/version.txt
-
       - name: Rename files
         run: |
-          mv android/flutter-apk/app-release.apk FileDrop-${{ steps.version.outputs.content }}.apk
-          mv android/bundle/release/app-release.aab FileDrop-${{ steps.version.outputs.content }}.aab
+          mv android/flutter-apk/app-release.apk FileDrop.apk
+          mv android/bundle/release/app-release.aab FileDrop.aab
 
       - name: Zip windows folder
         uses: "vimtor/action-zip@v1.1"
@@ -199,60 +139,31 @@ jobs:
       - name: Releasing builds
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
-          automatic_release_tag: "v${{ steps.version.outputs.content }}"
+          automatic_release_tag: "latest"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: ${{ env.isRelease == 'false' }}
-          files: | 
+          files: |
             *.apk
             *.aab
             linux/*.deb
             windows.zip
-
-  version:
-    name: Create version number
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.7
-        with:
-          versionSpec: "5.x"
-      - name: Use GitVersion
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.9.7
-
-      - name: Create version.txt with MajorMinorPatch
-        run: echo ${{ steps.gitversion.outputs.majorMinorPatch }}${{ steps.gitversion.outputs.PreReleaseTagWithDash }} > version_nw.txt
-
-      - name: Create new file without newline char from version.txt
-        run: tr -d '\n' < version_nw.txt > version.txt
-
-      - name: Upload version.txt
-        uses: actions/upload-artifact@v2
-        with:
-          name: gitversion
-          path: version.txt
 
   google_play_publish:
     runs-on: ubuntu-latest
     if: ${{ github.ref_name == 'main' }}
     needs: [release]
     steps:
-    - uses: actions/checkout@v2
-    - name: Downloading builds
-      uses: actions/download-artifact@v3
-      with: 
-         name: android
+      - uses: actions/checkout@v2
+      - name: Downloading builds
+        uses: actions/download-artifact@v3
+        with:
+          name: android
 
-    - name: Publishing
-      uses: r0adkll/upload-google-play@v1
-      with:
-        serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT }}
-        packageName: com.alper.weepy
-        releaseFiles: bundle/release/app-release.aab
-        track: beta
-        whatsNewDirectory: whatsnew
+      - name: Publishing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT }}
+          packageName: com.alper.weepy
+          releaseFiles: bundle/release/app-release.aab
+          track: beta
+          whatsNewDirectory: whatsnew
