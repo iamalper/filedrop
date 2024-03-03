@@ -37,8 +37,9 @@ void _callBack() {
               IsolateNameServer.lookupPortByName(PortNames.receiver2main.name);
 
           final receiverPort = ReceivePort();
-          IsolateNameServer.registerPortWithName(
+          final isRegistered = IsolateNameServer.registerPortWithName(
               receiverPort.sendPort, PortNames.main2receiver.name);
+          assert(isRegistered);
           receiverPort.listen((message) {
             //TODO: Test alive feature
             if (message["data"] == messages.MessageType.alive) {
@@ -109,6 +110,9 @@ void _callBack() {
       }
     } on Exception {
       rethrow;
+    } finally {
+      IsolateNameServer.removePortNameMapping(PortNames.main2receiver.name);
+      IsolateNameServer.removePortNameMapping(PortNames.main2sender.name);
     }
   });
 }

@@ -68,7 +68,7 @@ class Discover {
   ///Get all available [InternetAddress] on device.
   static Future<List<InternetAddress>> getIpAdresses() async {
     final interfaces =
-        await NetworkInterface.list(type: InternetAddressType.IPv4);
+        await NetworkInterface.list(type: InternetAddressType.any);
     var adresses = <InternetAddress>[];
     for (final interface in interfaces) {
       for (final adress in interface.addresses) {

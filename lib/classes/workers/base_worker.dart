@@ -13,8 +13,16 @@ abstract class BaseWorker {
 
   ///Creates [ReceivePort] for worker to main isolate communication and registers.
   ///
-  ///Calling more than one, throws.
+  ///Dart Isolate system does not allow registering same receive port more than one.
+  ///Call [unregisterReceivePort()] before calling more than one.
   ReceivePort getReceivePort();
+
+  ///Unregister the receive port created by [getReceivePort()]
+  ///
+  ///It must called at cleanup.
+  ///
+  ///Safe to call before [getReceivePort()]
+  void unregisterReceivePort();
 
   ///Looks up for the [SendPort] registered for main isolate to worker communication.
   ///

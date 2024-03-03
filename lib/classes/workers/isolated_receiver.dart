@@ -77,6 +77,7 @@ class IsolatedReceiver extends Receiver implements BaseWorker {
     if (progressNotification) {
       await notifications.cancelDownload();
     }
+    unregisterReceivePort();
     await workManager.cancelByUniqueName(Tasks.receive.name);
   }
 
@@ -121,6 +122,8 @@ class IsolatedReceiver extends Receiver implements BaseWorker {
     } on Exception catch (e) {
       log("Error", name: "IsolatedReceiver", error: e);
       rethrow;
+    } finally {
+      unregisterReceivePort();
     }
   }
 
@@ -134,7 +137,13 @@ class IsolatedReceiver extends Receiver implements BaseWorker {
   }
 
   @override
+  void unregisterReceivePort() {
+    IsolateNameServer.removePortNameMapping(PortNames.receiver2main.name);
+  }
+
+  @override
   SendPort? getSendPort() {
+    RawReceivePort();
     final sendPort =
         IsolateNameServer.lookupPortByName(PortNames.main2receiver.name);
     return sendPort;

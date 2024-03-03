@@ -35,51 +35,59 @@ class IsolatedSender extends Sender implements BaseWorker {
   @override
   Future<void> send(Device device, Iterable<PlatformFile> files,
       {bool useDb = true, bool progressNotification = true}) async {
-    await initialize();
-    if (progressNotification) {
-      progressNotification = await notifications.initialize();
-    }
-    final fileDirs = files.map((e) => e.path!);
-    final map = device.map;
-    for (var i = 0; i < fileDirs.length; i++) {
-      map["file$i"] = fileDirs.elementAt(i);
-    }
-    map["useDb"] = useDb;
-
-    final exitBlock = Completer<void>();
-    getReceivePort().listen((data) async {
-      //Listen incoming messages
-      switch (messages.MessageType.values[data["type"]]) {
-        case messages.MessageType.updatePercent:
-          final message = messages.UpdatePercent.fromMap(data);
-          if (progressNotification) {
-            await notifications.showUpload((message.newPercent * 100).round());
-          }
-          onUploadProgress?.call(message.newPercent);
-          break;
-        case messages.MessageType.completed:
-          final _ = messages.Completed.fromMap(data);
-          exitBlock.complete();
-        case messages.MessageType.alive:
-          aliveCheckCompleter.complete(true);
-        default:
-          throw Error();
+    try {
+      await initialize();
+      if (progressNotification) {
+        progressNotification = await notifications.initialize();
       }
-    });
-    await workManager.registerOneOffTask(Tasks.send.name, Tasks.send.name,
-        inputData: map);
-    if (progressNotification) {
-      //Create notification
-      await notifications.showUpload(0);
-    }
-    await exitBlock.future;
-    if (progressNotification) {
-      await notifications.cancelUpload();
+      final fileDirs = files.map((e) => e.path!);
+      final map = device.map;
+      for (var i = 0; i < fileDirs.length; i++) {
+        map["file$i"] = fileDirs.elementAt(i);
+      }
+      map["useDb"] = useDb;
+
+      final exitBlock = Completer<void>();
+      getReceivePort().listen((data) async {
+        //Listen incoming messages
+        switch (messages.MessageType.values[data["type"]]) {
+          case messages.MessageType.updatePercent:
+            final message = messages.UpdatePercent.fromMap(data);
+            if (progressNotification) {
+              await notifications
+                  .showUpload((message.newPercent * 100).round());
+            }
+            onUploadProgress?.call(message.newPercent);
+            break;
+          case messages.MessageType.completed:
+            final _ = messages.Completed.fromMap(data);
+            exitBlock.complete();
+          case messages.MessageType.alive:
+            aliveCheckCompleter.complete(true);
+          default:
+            throw Error();
+        }
+      });
+      await workManager.registerOneOffTask(Tasks.send.name, Tasks.send.name,
+          inputData: map);
+      if (progressNotification) {
+        //Create notification
+        await notifications.showUpload(0);
+      }
+      await exitBlock.future;
+      if (progressNotification) {
+        await notifications.cancelUpload();
+      }
+    } finally {
+      unregisterReceivePort();
     }
   }
 
   @override
-  Future<void> stop() => workManager.cancelByUniqueName(Tasks.send.name);
+  Future<void> stop() async {
+    unregisterReceivePort();
+    await workManager.cancelByUniqueName(Tasks.send.name);
+  }
 
   @override
   ReceivePort getReceivePort() {
@@ -88,6 +96,11 @@ class IsolatedSender extends Sender implements BaseWorker {
         receivePort.sendPort, PortNames.sender2main.name);
     assert(isRegistered);
     return receivePort;
+  }
+
+  @override
+  void unregisterReceivePort() {
+    IsolateNameServer.removePortNameMapping(PortNames.sender2main.name);
   }
 
   @override

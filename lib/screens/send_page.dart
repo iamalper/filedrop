@@ -66,6 +66,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
     }
   }
 
+  Future? _discoverFuture;
   @override
   void initState() {
     _uploadAnimC = AnimationController(
@@ -76,12 +77,12 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
         setState(() {});
       });
     super.initState();
-    _discover();
+    _discoverFuture = _discover();
   }
 
   Future<void> _discover() async {
     try {
-      while (_devices.isEmpty) {
+      while (_devices.isEmpty && mounted) {
         _devices = await discover_class.Discover.discover();
       }
       uiState = UiState.select;
@@ -97,6 +98,7 @@ class _SendPageInnerState extends ConsumerState<SendPageInner>
   void dispose() {
     _uploadAnimC.dispose();
     _sender.stop();
+    _discoverFuture?.ignore();
     super.dispose();
   }
 
